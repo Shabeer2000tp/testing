@@ -1,0 +1,116 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="welcome-header h3 mb-0">All Teams</h1>
+        <p class="text-muted">An overview of all project teams.</p>
+    </div>
+    <div>
+        <div class="d-flex align-items-center gap-3">
+            <form action="/admin/teams" method="GET" class="d-flex">
+                <input type="text" name="search" class="form-control form-control-sm" placeholder="Search by name..." value="<%= search %>">
+                <input type="hidden" name="sortBy" value="<%= sortBy %>">
+                <button type="submit" class="btn btn-sm btn-primary ms-2">Search</button>
+            </form>
+            <div class="dropdown">
+                <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="sortDropdown" data-bs-toggle="dropdown">
+                    Sort by: <span class="text-capitalize"><%= sortBy.replace('_', ' ') %></span>
+                </button>
+                <ul class="dropdown-menu" aria-labelledby="sortDropdown">
+                    <li><a class="dropdown-item" href="?sortBy=name&search=<%= search %>">Team Name</a></li>
+                    <li><a class="dropdown-item" href="?sortBy=sprint_progress&search=<%= search %>">Sprint Progress</a></li>
+                    <li><a class="dropdown-item" href="?sortBy=overall_progress&search=<%= search %>">Overall Progress</a></li>
+                    <li><a class="dropdown-item" href="?sortBy=domain&search=<%= search %>">Domain</a></li>
+                </ul>
+            </div>
+            <a href="/admin/teams/new" class="btn btn-primary"><i class="fas fa-plus-circle me-1"></i> Create New Team</a>
+        </div>
+    </div>
+</div>
+
+<% if (teams.length > 0) { %>
+    <div class="card-container">
+        <% teams.forEach(team => { %>
+            <div class="team-card">
+                <a href="/admin/teams/<%= team._id %>" class="team-card-link">
+                    <div class="team-card-body">
+                        <!-- Main Info -->
+                        <div class="team-card-main-info">
+                            <h5 class="team-name mb-0"><%= team.name %></h5>
+                            <div class="team-guide">
+                                <p class="mb-0 small"><i class="fas fa-user-tie me-2"></i><%= team.guide ? team.guide.name : 'N/A' %></p>
+                            </div>
+                        </div>
+
+                        <!-- Sprint Progress -->
+                        <div class="progress-section">
+                        <% if (team.sprintCapacity > 0) { %>
+                                <div class="progress-header">
+                                    <div>
+                                        <span class="progress-title">Active Sprint</span>
+                                        <div class="text-muted small"><%= team.activeSprintName %></div>
+                                    </div>
+                                </div>
+                                <div class="progress-bar-wrapper">
+                                    <% const sprintPercentage = (team.completedStoryPoints / team.sprintCapacity) * 100; %>
+                                    <div class="progress-bar-inner sprint-progress" style="width: <%= sprintPercentage.toFixed(2) %>%;"></div>
+                                </div>
+                                <div class="progress-value small text-end"><%= team.completedStoryPoints %> / <%= team.sprintCapacity %> SP</div>
+                        <% } else { %>
+                            <div class="no-sprint-message">
+                                No active sprint for this team.
+                            </div>
+                        <% } %>
+                        </div>
+
+                        <!-- Overall Progress -->
+                        <div class="progress-section">
+                        <% if (team.overallTotalPoints > 0) { %>
+                                <div class="progress-header">
+                                    <span class="progress-title">Overall Project Completion</span>
+                                </div>
+                                <div class="progress-bar-wrapper">
+                                    <% const overallPercentage = (team.overallCompletedPoints / team.overallTotalPoints) * 100; %>
+                                    <div class="progress-bar-inner overall-progress" style="width: <%= overallPercentage.toFixed(2) %>%;"></div>
+                                </div>
+                                <div class="progress-value small text-end"><%= team.overallCompletedPoints %> / <%= team.overallTotalPoints %> SP</div>
+                        <% } %>
+                        </div>
+
+                        <!-- Avatars -->
+                        <div class="team-members-avatars">
+                            <% team.students.slice(0, 5).forEach(student => { %>
+                                <div class="avatar" title="<%= student.name %>">
+                                    <%= student.name.split(' ').map(n => n[0]).join('').substring(0,2) %>
+                                </div>
+                            <% }); %>
+                            <% if (team.students.length > 5) { %>
+                                <div class="avatar avatar-more" title="<%= team.students.length - 5 %> more members">
+                                    +<%= team.students.length - 5 %>
+                                </div>
+                            <% } %>
+                        </div>
+                    </div>
+                </a>
+                <div class="card-actions">
+                    <a href="/admin/teams/<%= team._id %>/edit" class="btn btn-action btn-edit">
+                        <i class="fas fa-edit me-1"></i> Edit
+                    </a>
+                    <a href="/admin/teams/<%= team._id %>/report" class="btn btn-action">
+                        <i class="fas fa-file-alt me-1"></i> Report
+                    </a>
+                    <form action="/admin/teams/<%= team._id %>/delete" method="POST" onsubmit="return confirm('Are you sure you want to delete this team?');">
+                        <button type="submit" class="btn btn-action btn-delete">
+                            <i class="fas fa-trash me-1"></i> Delete
+                        </button>
+                    </form>
+                </div>
+            </div>
+        <% }); %>
+    </div>
+<% } else { %>
+    <div class="card">
+        <div class="card-body text-center p-5">
+            <p class="text-muted mb-0">No teams have been created yet.</p>
+            <a href="/admin/teams/new" class="btn btn-primary mt-3">Create the First Team</a>
+        </div>
+    </div>
+<% } %>

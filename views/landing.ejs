@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sprint Sync</title>
+  <link href="https://fonts.googleapis.com/css2?family=Helvetica:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Helvetica', sans-serif;
+    }
+
+    body {
+      background-color: #f9f9f9;
+      color: #111;
+      overflow-x: hidden;
+      scroll-behavior: smooth;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 4rem 2rem;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 4rem;
+    }
+
+    .logo-img {
+      height: 95px;
+      width: auto;
+    }
+
+    nav a {
+      margin: 0 1rem;
+      text-decoration: none;
+      color: #111;
+      font-weight: 500;
+      font-size: 0.95rem;
+      transition: opacity 0.3s ease;
+    }
+
+    nav a:hover {
+      opacity: 0.6;
+    }
+
+    .cta-btn {
+      background-color: #111;
+      color: #fff;
+      padding: 0.7rem 1.5rem;
+      border-radius: 4px;
+      text-decoration: none;
+      font-weight: 600;
+      transition: 0.3s ease;
+      letter-spacing: 0.3px;
+    }
+
+    .cta-btn:hover {
+      background-color: #444;
+    }
+
+    .hero {
+      text-align: center;
+      margin-bottom: 6rem;
+    }
+
+    .hero h1 {
+      font-size: 2.4rem;
+      font-weight: 700;
+      margin-bottom: 1.2rem;
+      color: #111;
+      letter-spacing: -0.5px;
+    }
+
+    .hero p {
+      font-size: 1.05rem;
+      color: #444;
+      margin-bottom: 3rem;
+      max-width: 720px;
+      margin-left: auto;
+      margin-right: auto;
+      line-height: 1.6;
+    }
+
+    .how-it-works, .features-section {
+      text-align: center;
+      margin-bottom: 6rem;
+    }
+
+    .how-it-works h2, .features-section h2 {
+      font-size: 1.8rem;
+      font-weight: 700;
+      margin-bottom: 3rem;
+      color: #111;
+      letter-spacing: -0.4px;
+    }
+
+    .cards {
+      display: flex;
+      justify-content: center;
+      gap: 4rem;
+      flex-wrap: wrap;
+    }
+
+    .card {
+      width: 280px;
+      text-align: left;
+    }
+
+    .card h3 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      margin-top: 1.5rem;
+      margin-bottom: 0.75rem;
+      color: #111;
+    }
+
+    .card p {
+      font-size: 0.95rem;
+      color: #555;
+      line-height: 1.6;
+    }
+
+    .card img {
+      width: 100px;
+      opacity: 0.8;
+    }
+
+    footer {
+      text-align: center;
+      padding: 4rem 0 2rem;
+      font-weight: 500;
+      color: #777;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <a href="#" class="logo">
+        <img src="/Sslogo Black-01.svg" alt="SprintSync Logo" class="logo-img">
+      </a>
+      <nav>
+        <a href="#">Home</a>
+        <a href="#features">Features</a>
+        <a href="#about">About</a>
+        <a href="#contact">Contact</a>
+        <a href="/login" class="cta-btn">Login</a>
+      </nav>
+    </header>
+
+    <section class="hero">
+      <h1>The way we work is not an accident.</h1>
+      <p>At SprintSync, we believe in a structured yet flexible approach to Agile project management that keeps academic and professional teams aligned, focused, and successful.</p>
+      <a href="/register" class="cta-btn">Get Started</a>
+    </section>
+
+    <section class="how-it-works">
+      <h2>How SprintSync Works</h2>
+      <div class="cards">
+        <div class="card">
+          <img src="/plan1.svg" alt="Assess">
+          <h3>Plan & Define</h3>
+          <p>We help you break down your project goals into manageable sprints, defining tasks and deliverables efficiently.</p>
+        </div>
+        <div class="card">
+          <img src="/exec.svg" alt="Pilot">
+          <h3>Execute & Adapt</h3>
+          <p>Teams collaborate using our intuitive Scrum boards—allowing real-time progress tracking and adaptive sprint planning.</p>
+        </div>
+        <div class="card">
+          <img src="/review.svg" alt="Co-create">
+          <h3>Review & Improve</h3>
+          <p>Each sprint ends with a retrospective to identify wins, challenges, and opportunities for continuous improvement.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="features" class="features-section">
+      <h2>Features That Power SprintSync</h2>
+      <div class="cards">
+        <div class="card">
+          <img src="/interact.svg" alt="Scrum Board">
+          <h3>Interactive Scrum Board</h3>
+          <p>Visualize your project workflow with dynamic drag-and-drop task cards that make tracking progress seamless and intuitive.</p>
+        </div>
+        <div class="card">
+          <img src="/calender.svg" alt="Calendar">
+          <h3>Global Calendar Integration</h3>
+          <p>Sync your sprint timelines, deadlines, and team meetings in one centralized calendar to avoid overlaps and missed milestones.</p>
+        </div>
+        <div class="card">
+          <img src="/notifi.svg" alt="Notifications">
+          <h3>Automated Notifications</h3>
+          <p>Never miss a deadline—SprintSync keeps your team on track with smart reminders for task updates, sprint reviews, and retrospectives.</p>
+        </div>
+        <div class="card">
+          <img src="/analyticsg.svg" alt="Analytics">
+          <h3>Progress Analytics Dashboard</h3>
+          <p>Gain insights into team performance using burndown charts, velocity metrics, and completion rates to make data-driven decisions.</p>
+        </div>
+        <div class="card">
+          <img src="/plan.svg" alt="Roles">
+          <h3>Role-Based Access</h3>
+          <p>Organize your team efficiently with roles such as Product Owner, Scrum Master, and Developer—each with customized access to relevant modules.</p>
+        </div>
+        <div class="card">
+          <img src="/docs.svg" alt="Docs">
+          <h3>Collaborative Documentation</h3>
+          <p>Centralize all sprint-related notes, documents, and reports in one shared space accessible by all team members.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="about" class="features-section">
+      <h2>About SprintSync</h2>
+      <div class="cards">
+        <div class="card">
+          <img src="/vision.svg" alt="Our Vision">
+          <h3>Our Vision</h3>
+          <p>To redefine academic project management through an Agile-first approach that bridges collaboration, transparency, and timely delivery for every team.</p>
+        </div>
+        <div class="card">
+          <img src="/mision.svg" alt="Our Mission">
+          <h3>Our Mission</h3>
+          <p>We aim to empower students and professionals by simplifying Agile implementation — making Scrum practices intuitive, visual, and impactful.</p>
+        </div>
+        <div class="card">
+          <img src="/team.svg" alt="Our Team">
+          <h3>Our Team</h3>
+          <p>Built by a group of tech enthusiasts passionate about product development and project success, SprintSync embodies teamwork and innovation.</p>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      &copy; 2025 SprintSync. All rights reserved.
+    </footer>
+  </div>
+</body>
+</html>

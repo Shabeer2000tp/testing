@@ -1,0 +1,59 @@
+<div class="sidebar d-flex flex-column">
+    <div class="sidebar-logo-container">
+        <img src="/Sslogo White-02.svg" alt="Sprint Sync Logo" class="sidebar-logo">
+    </div>
+    
+    <ul class="nav flex-column">
+        <% if (user && user.role === 'admin') { %>
+        <li class="nav-item"><a class="nav-link" href="/admin/dashboard"><i class="fas fa-home fa-fw me-2"></i>Dashboard</a></li>
+        <li class="nav-item"><a class="nav-link" href="/admin/teams/new"><i class="fas fa-plus-circle fa-fw me-2"></i>Create Team</a></li>
+        <li class="nav-item"><a class="nav-link" href="/admin/teams"><i class="fas fa-users fa-fw me-2"></i>View Teams</a></li>
+        <li class="nav-item"><a class="nav-link" href="/admin/sprints"><i class="fas fa-tasks fa-fw me-2"></i>Manage Sprints</a></li>
+        <li class="nav-item"><a class="nav-link" href="/admin/proposals"><i class="fas fa-file-alt fa-fw me-2"></i>Review Proposals</a></li>
+        
+        <li class="nav-item"><a class="nav-link" href="/admin/domains"><i class="fas fa-layer-group fa-fw me-2"></i>Manage Domains</a></li>
+        
+      <li class="nav-item"><a class="nav-link" href="/admin/analytics"><i class="fas fa-chart-line fa-fw me-2"></i>Analytics</a></li>
+
+        <li class="nav-item"><a class="nav-link" href="/admin/reminders"><i class="fas fa-bell fa-fw me-2"></i>Manage Reminders</a></li>
+        <li class="nav-item"><a class="nav-link" href="/admin/notifications/new"><i class="fas fa-paper-plane fa-fw me-2"></i>Send Notification</a></li>
+        <li class="nav-item"><a class="nav-link" href="/admin/notifications/log"><i class="fas fa-history fa-fw me-2"></i>Notification Log</a></li>
+        <li class="nav-item"><a class="nav-link" href="/admin/reviews"><i class="fas fa-clipboard-check fa-fw me-2"></i>Schedule Reviews</a></li>
+        <li class="nav-item"><a class="nav-link" href="/admin/settings"><i class="fas fa-cog fa-fw me-2"></i>Settings</a></li>
+
+        <% } else if (user && user.role === 'guide') { %>
+            <li class="nav-item"><a class="nav-link" href="/guide/dashboard"><i class="fas fa-home fa-fw me-2"></i>Dashboard</a></li>
+            <li class="nav-item"><a class="nav-link" href="/guide/proposals"><i class="fas fa-file-alt fa-fw me-2"></i>Proposals</a></li>
+            <li class="nav-item"><a class="nav-link" href="/guide/calendar"><i class="fas fa-calendar-alt fa-fw me-2"></i>Calendar</a></li>
+            <li class="nav-item"><a class="nav-link" href="/guide/reviews"><i class="fas fa-clipboard-check fa-fw me-2"></i>My Reviews</a></li>
+            <li class="nav-item"><a class="nav-link" href="/guide/notifications"><i class="fas fa-bell fa-fw me-2"></i>Notifications</a></li>
+
+        <% } else if (user && user.role === 'student') { %>
+            <li class="nav-item"><a class="nav-link" href="/student/dashboard"><i class="fas fa-home fa-fw me-2"></i>Dashboard</a></li>
+            <li class="nav-item"><a class="nav-link" href="/student/proposal"><i class="fas fa-file-alt fa-fw me-2"></i>Proposal</a></li>
+            <li class="nav-item"><a class="nav-link" href="/student/backlog"><i class="fas fa-list-alt fa-fw me-2"></i>Backlog</a></li>
+            <li class="nav-item"><a class="nav-link" href="/student/calendar"><i class="fas fa-calendar-alt fa-fw me-2"></i>Calendar</a></li>
+            <li class="nav-item"><a class="nav-link" href="/student/sprint-planning"><i class="fas fa-tasks fa-fw me-2"></i>Sprint Planning</a></li>
+            <li class="nav-item"><a class="nav-link" href="/student/reviews"><i class="fas fa-clipboard-check fa-fw me-2"></i>My Reviews</a></li>
+            <li class="nav-item"><a class="nav-link" href="/student/notifications"><i class="fas fa-bell fa-fw me-2"></i>Notifications</a></li>
+            
+            <% if (locals.sprintSetting && sprintSetting.value === 'team') { %>
+                <li class="nav-item"><a class="nav-link" href="/student/sprints"><i class="fas fa-sync-alt fa-fw me-2"></i>Manage Sprints</a></li>
+            <% } %>
+            
+            <li class="nav-item"><a class="nav-link" href="/student/daily-log"><i class="fas fa-clipboard-list fa-fw me-2"></i>Daily Log</a></li>
+            <li class="nav-item"><a class="nav-link" href="/student/upload"><i class="fas fa-upload fa-fw me-2"></i>Upload</a></li>
+            <li class="nav-item"><a class="nav-link" href="/student/past-sprints"><i class="fas fa-history fa-fw me-2"></i>Past Sprints</a></li>
+            
+        <% } %>
+    </ul>
+
+    <% if (user) { %>
+        <div class="mt-auto p-3">
+            <div class="small text-center mb-2">Logged in as: <%= user.name %></div>
+            <form action="/logout" method="POST">
+                <button class="btn btn-outline-light w-100" type="submit"><i class="fas fa-sign-out-alt me-2"></i>Logout</button>
+            </form>
+        </div>
+    <% } %>
+</div>

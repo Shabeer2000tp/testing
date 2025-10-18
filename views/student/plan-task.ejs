@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Plan Task</title>
+    <style>
+        body { font-family: sans-serif; padding: 2rem; }
+        .card { background: #f9f9f9; padding: 1.5rem; border-radius: 8px; border: 1px solid #ddd; max-width: 600px; margin: auto; }
+        .backlog-item { border-left: 4px solid #007bff; padding-left: 1rem; background: #e7f3ff; }
+        form div { margin-bottom: 1rem; }
+        button { padding: 0.75rem; border: none; background-color: #28a745; color: white; border-radius: 4px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <%- include('../partials/_messages.ejs') %>
+    <div class="card">
+        <h2>Plan Task for Sprint</h2>
+        <a href="/student/sprint-planning">&larr; Back to Planning Board</a>
+        
+        <div class="backlog-item" style="margin-top: 2rem;">
+            <h4>From Backlog Item:</h4>
+            <p>"<%= backlogItem.description %>"</p>
+        </div>
+
+        <form action="/student/tasks" method="POST" style="margin-top: 2rem;">
+            <input type="hidden" name="sprintId" value="<%= activeSprint._id %>">
+            <input type="hidden" name="teamId" value="<%= team._id %>">
+            <input type="hidden" name="backlogItemId" value="<%= backlogItem._id %>">
+            
+            <div>
+                <label for="description">New Task Description</label>
+                <textarea name="description" rows="3" required></textarea>
+            </div>
+            <div>
+                <label for="storyPoints">Story Points</label>
+                <input type="number" name="storyPoints" min="1" required>
+            </div>
+            <div>
+                <label for="startDate">Start Date</label>
+                <input type="date" name="startDate" required>
+            </div>
+            <div>
+                <label for="endDate">End Date</label>
+                <input type="date" name="endDate" required>
+            </div>
+            <div>
+                <label>
+                    <input type="checkbox" name="assignToAll" value="true">
+                    Assign to all team members
+                </label>
+            </div>
+            <button type="submit">Add Task to Sprint</button>
+        </form>
+    </div>
+</body>
+</html>

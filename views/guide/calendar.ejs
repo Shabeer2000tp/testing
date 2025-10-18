@@ -1,0 +1,39 @@
+<%- include('../partials/_header.ejs', { title: title, user: user, sprintSetting: sprintSetting }) %>
+
+<div class="main-content">
+    <div class="welcome-header">
+        <h1>Team Calendar</h1>
+        <p>An overview of your teams' sprints and important deadlines.</p>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <div id="calendar"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const calendarEl = document.getElementById('calendar');
+        if (calendarEl) {
+            const calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'dayGridMonth',
+                headerToolbar: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'dayGridMonth,timeGridWeek,listWeek' // Added list view for convenience
+                },
+                events: <%- JSON.stringify(calendarEvents) %>,
+                eventTimeFormat: { // Hides the time for all-day events
+                    hour: 'numeric',
+                    minute: '2-digit',
+                    meridiem: false
+                }
+            });
+            calendar.render();
+        }
+    });
+</script>
+
+<%- include('../partials/_footer.ejs') %>

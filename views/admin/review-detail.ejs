@@ -1,0 +1,69 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="welcome-header h3 mb-0">Review for: <%= review.team.name %></h1>
+        <p class="text-muted">Scheduled for: <%= new Date(review.reviewDate).toLocaleString() %></p>
+    </div>
+    <div>
+        <a href="/admin/reviews" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-1"></i> Back to All Reviews
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Left Column: Submitted Remarks -->
+    <div class="col-lg-7">
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-comments me-2"></i>Submitted Remarks
+            </div>
+            <div class="card-body">
+                <% if (review.remarks && review.remarks.length > 0) { %>
+                    <% review.remarks.forEach(remark => { %>
+                        <div class="card remark-card">
+                            <div class="card-header">
+                                <i class="fas fa-user-tie me-2"></i><strong><%= remark.reviewer.name %></strong>
+                            </div>
+                            <div class="card-body">
+                                <% if (remark.suggestions) { %>
+                                    <div class="remark-section mb-3">
+                                        <h6>Suggestions:</h6>
+                                        <p class="mb-0"><%= remark.suggestions %></p>
+                                    </div>
+                                <% } %>
+                                <% if (remark.remarks) { %>
+                                    <div class="remark-section">
+                                        <h6>General Remarks:</h6>
+                                        <p class="mb-0"><%= remark.remarks %></p>
+                                    </div>
+                                <% } %>
+                            </div>
+                        </div>
+                    <% }); %>
+                <% } else { %>
+                    <p class="text-center text-muted p-4">No remarks have been submitted for this review yet.</p>
+                <% } %>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column: Team & Panel Info -->
+    <div class="col-lg-5">
+        <div class="card mb-4">
+            <div class="card-header"><i class="fas fa-users me-2"></i>Team Members</div>
+            <div class="list-group list-group-flush">
+                <% review.team.students.forEach(student => { %>
+                    <div class="list-group-item"><%= student.name %></div>
+                <% }); %>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header"><i class="fas fa-user-shield me-2"></i>Review Panel</div>
+            <div class="list-group list-group-flush">
+                <% review.panel.forEach(member => { %>
+                    <div class="list-group-item"><%= member.name %></div>
+                <% }); %>
+            </div>
+        </div>
+    </div>
+</div>

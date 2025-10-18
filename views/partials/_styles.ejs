@@ -1,0 +1,405 @@
+<style>
+  /* --- Global Variables --- */
+  :root {
+      /* Color Palette */
+      --primary-bg: #f9f9f9;
+      --primary-text: #111;
+      --secondary-text: #444;
+      --muted-text: #555;
+      --footer-text: #777;
+      --accent-bg: #111;
+      --accent-hover: #444;
+      --accent-text: #fff;
+      --card-bg: #fff;
+      --input-border: #ddd;
+      --shadow-light: rgba(0, 0, 0, 0.05);
+      --shadow-medium: rgba(0, 0, 0, 0.1);
+
+      /* Typography */
+      --font-family: 'Helvetica', sans-serif;
+      --lh: 1.6;
+  }
+
+  /* --- Base Styles --- */
+  html {
+      scroll-behavior: smooth;
+  }
+
+  body {
+      font-family: var(--font-family);
+      font-weight: 400;
+      background-color: var(--primary-bg);
+      color: var(--secondary-text);
+      line-height: var(--lh);
+      margin: 0;
+  }
+
+  .app-body {
+      display: flex;
+  }
+   
+  /* --- Main Content --- */
+  .main-content {
+      margin-left: 250px;
+      padding: 4rem 2rem;
+      width: calc(100% - 250px); 
+      background-image: url('/background-pattern.png'); /* Add your background image here */
+      background-size: cover;
+      background-position: center;
+      background-color: var(--primary-bg);
+      min-height: 100vh;
+      max-width: 1200px;
+      margin-left: 250px; /* Sidebar offset */
+      margin-right: auto;
+  }
+
+  /* --- Typography --- */
+  h1, h2, h3, h4, h5, h6 {
+      font-weight: 700;
+      color: var(--primary-text);
+      letter-spacing: -0.4px;
+  }
+  .welcome-header h1, .welcome-header .h3 {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: var(--primary-text);
+      margin-bottom: 0.25rem;
+  }
+  .welcome-header p {
+      font-size: 1.05rem;
+      color: var(--muted-text);
+      margin-bottom: 0;
+  }
+  p {
+      font-size: 0.95rem;
+      line-height: var(--lh);
+  }
+
+  /* --- Sidebar / Header --- */
+  .sidebar {
+      width: 250px;
+      height: 100vh;
+      position: fixed;
+      top: 0;
+      left: 0;
+      background-color: var(--accent-bg);
+      color: var(--accent-text);
+      z-index: 1000;
+  }
+  .sidebar .h5 {
+      font-weight: 700;
+      letter-spacing: -0.5px;
+  }
+  .sidebar .nav-link {
+      color: rgba(255, 255, 255, 0.8);
+      transition: opacity 0.3s ease;
+  }
+  .sidebar .nav-link:hover {
+      opacity: 0.6;
+  }
+  .sidebar .nav-link.active {
+      font-weight: 700;
+      color: var(--accent-text);
+      opacity: 1;
+  }
+  .sidebar .btn-outline-light {
+      border-color: rgba(255, 255, 255, 0.5);
+      color: rgba(255, 255, 255, 0.8);
+  }
+
+  /* --- Buttons --- */
+  .btn-primary {
+      background-color: var(--accent-bg);
+      border-color: var(--accent-bg);
+      color: var(--accent-text);
+      padding: 0.7rem 1.5rem;
+      border-radius: 4px;
+      letter-spacing: 0.3px;
+      transition: background-color 0.3s ease;
+  }
+  .btn-primary:hover {
+      background-color: var(--accent-hover);
+      border-color: var(--accent-hover);
+  }
+
+  /* --- Cards --- */
+  .card {
+      background-color: var(--card-bg);
+      border: 1px solid #eee;
+      box-shadow: 0 2px 10px var(--shadow-light);
+      margin-bottom: 2rem;
+      width: 100%;
+      border-radius: 8px;
+  }
+  .team-card, .stat-card {
+      padding: 0;
+      box-shadow: 0 4px 15px var(--shadow-light);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      margin-bottom: 0; /* Let the container handle gap */
+  }
+  .team-card:hover, .stat-card:hover {
+      transform: translateY(-8px);
+      box-shadow: 0 10px 20px var(--shadow-medium);
+  }
+  .card-header {
+      background-color: transparent;
+      border-bottom: 1px solid #eee;
+      font-weight: 600;
+      font-size: 1.05rem;
+      color: var(--secondary-text);
+  }
+  .card-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+  }
+  .card p, .card .text-muted {
+      color: var(--muted-text);
+  }
+  .card-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 1.5rem;
+  }
+
+  /* --- Forms --- */
+  .form-card .card-body {
+      padding: 2rem;
+  }
+  .form-control, .form-select {
+      font-family: var(--font-family);
+      border: 1px solid var(--input-border);
+  }
+  .form-control:focus, .form-select:focus {
+      border-color: var(--primary-text);
+      box-shadow: 0 0 0 0.25rem rgba(17, 17, 17, 0.1);
+  }
+
+  /* --- Authentication Pages --- */
+  .auth-bg {
+      background-color: var(--primary-bg);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 4rem 2rem;
+  }
+  .auth-card {
+      max-width: 450px;
+      padding: 1.5rem;
+      box-shadow: 0 10px 30px var(--shadow-medium);
+  }
+  .auth-header {
+      font-size: 2.4rem;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      color: var(--primary-text);
+  }
+
+  /* --- Footer (Conceptual, since it's in the sidebar) --- */
+  .sidebar .mt-auto {
+      padding-top: 4rem;
+      padding-bottom: 2rem;
+      text-align: center;
+  }
+  .sidebar .small {
+      font-size: 0.9rem;
+      color: var(--footer-text);
+  }
+
+  /* --- Specific Component Tweaks for New Design --- */
+  .table {
+      color: var(--secondary-text);
+  }
+  .table thead th {
+      color: var(--primary-text);
+      font-weight: 600;
+  }
+  .badge {
+      font-weight: 600;
+  }
+  .progress-bar-wrapper {
+      height: 6px;
+      background-color: #eee;
+      border-radius: 6px;
+      overflow: hidden;
+  }
+  .progress-bar-inner {
+      height: 100%;
+      transition: width 0.6s ease;
+  }
+  .sprint-progress { background-color: var(--primary-text); }
+  .overall-progress { background-color: #aaa; }
+
+  .nav-tabs .nav-link {
+      color: var(--muted-text);
+      font-weight: 600;
+  }
+  .nav-tabs .nav-link.active {
+      color: var(--primary-text);
+  }
+
+  .accordion-button:not(.collapsed) {
+      background-color: #f0f0f0;
+      color: var(--primary-text);
+      box-shadow: none;
+  }
+  .accordion-item {
+      border-color: #eee;
+  }
+
+  .priority-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.275rem 0.6rem;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+  }
+  .priority-1 { /* High */
+      color: #991b1b;
+      background-color: #fee2e2;
+  }
+  .priority-2 { /* Medium */
+      color: #9a3412;
+      background-color: #ffedd5;
+  }
+  .priority-3 { /* Low */
+      color: #166534;
+      background-color: #dcfce7;
+  }
+
+  .burndown-chart-container {
+      position: relative;
+      height: 300px;
+      width: 100%;
+  }
+
+  .avatar {
+      height: 32px;
+      width: 32px;
+      border-radius: 50%;
+      background-color: #ddd;
+      color: var(--primary-text);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      border: 2px solid white;
+      margin-left: -10px;
+  }
+
+  /* --- Refined Stat Card --- */
+  .stat-card {
+      border-left-width: 4px;
+      border-radius: 4px;
+  }
+  .stat-card .card-body {
+      position: relative;
+      padding: 1.5rem;
+  }
+  .stat-card-title {
+      text-transform: uppercase;
+      font-size: 0.8rem;
+      font-weight: 700;
+      margin-bottom: 0.25rem;
+  }
+  .stat-card-value {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--primary-text);
+  }
+  .stat-card-icon {
+      position: absolute;
+      right: 1.5rem;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 2.8rem;
+      opacity: 0.1;
+      transition: opacity 0.3s ease;
+  }
+  .stat-card:hover .stat-card-icon {
+      opacity: 0.15;
+  }
+  .stat-card.border-primary { border-color: #4e73df; }
+  .stat-card.border-primary .stat-card-title { color: #4e73df; }
+  .stat-card.border-success { border-color: #1cc88a; }
+  .stat-card.border-success .stat-card-title { color: #1cc88a; }
+  .stat-card.border-info { border-color: #36b9cc; }
+  .stat-card.border-info .stat-card-title { color: #36b9cc; }
+  .stat-card.border-warning { border-color: #f6c23e; }
+  .stat-card.border-warning .stat-card-title { color: #f6c23e; }
+  .stat-card.border-danger { border-color: #e74a3b; }
+  .stat-card.border-danger .stat-card-title { color: #e74a3b; }
+
+  /* --- Refined Team Card --- */
+  .team-card {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+  }
+  .team-card-link {
+      text-decoration: none;
+      color: inherit;
+      display: flex;
+      flex-direction: column;
+      flex-grow: 1;
+      padding: 1.5rem;
+  }
+  .team-card-body {
+      flex-grow: 1;
+  }
+  .team-name {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--primary-text);
+  }
+  .team-guide {
+      font-size: 0.9rem;
+      color: var(--muted-text);
+      margin-bottom: 1rem;
+  }
+  .progress-section {
+      margin-bottom: 1rem;
+  }
+  .progress-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.3rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+  }
+  .progress-title { color: var(--secondary-text); }
+  .progress-value { color: var(--muted-text); }
+
+  /* --- Refined Card Actions --- */
+  .card-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.5rem;
+      padding: 0.75rem 1.5rem;
+      border-top: 1px solid #eee;
+      background-color: #fafafa;
+  }
+  .btn-action {
+      font-size: 0.8rem;
+  }
+
+  /* --- Logo Styles --- */
+  .sidebar-logo {
+      height: 70px; /* 2x size */
+      width: auto;
+  }
+  .sidebar-logo-container {
+      padding: 1rem 1.5rem;
+      text-align: left;
+  }
+  .auth-logo {
+      height: 140px; /* 2x size */
+      width: auto;
+      margin-bottom: 1rem;
+  }
+</style>

@@ -1,0 +1,98 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="welcome-header h3 mb-0">Project Backlog</h1>
+        <p class="text-muted">Manage and prioritize your team's user stories and tasks.</p>
+    </div>
+</div>
+
+<% if (!team) { %>
+    <div class="card text-center">
+        <div class="card-body p-5">
+            <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+            <h5 class="card-title">Not Assigned to a Team</h5>
+            <p class="text-muted">You must be assigned to a team by an administrator before you can manage a backlog.</p>
+        </div>
+    </div>
+<% } else { %>
+    <div class="row">
+        <!-- Backlog Items List Column -->
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header"><i class="fas fa-list-alt me-2"></i>Backlog Items</div>
+                <div class="card-body p-0">
+                    <% if (backlogItems.length > 0) { %>
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Priority</th>
+                                        <th>Description</th>
+                                        <th>Status</th>
+                                        <th class="text-end">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <% backlogItems.forEach(item => { %>
+                                        <tr>
+                                            <td>
+                                                <% if (item.priority == 1) { %>
+                                                    <span class="priority-badge priority-1">High</span>
+                                                <% } else if (item.priority == 2) { %>
+                                                    <span class="priority-badge priority-2">Medium</span>
+                                                <% } else { %>
+                                                    <span class="priority-badge priority-3">Low</span>
+                                                <% } %>
+                                            </td>
+                                            <td><%= item.description %></td>
+                                            <td>
+                                                <span class="badge bg-<%= item.status === 'New' ? 'primary' : (item.status === 'In Sprint' ? 'info' : 'success') %>">
+                                                    <%= item.status %>
+                                                </span>
+                                            </td>
+                                            <td class="text-end">
+                                                <% if (item.status === 'New') { %>
+                                                    <a href="/student/backlog/<%= item._id %>/plan" class="btn btn-sm btn-outline-primary">Plan Task</a>
+                                                <% } %>
+                                            </td>
+                                        </tr>
+                                    <% }); %>
+                                </tbody>
+                            </table>
+                        </div>
+                    <% } else { %>
+                        <p class="text-center text-muted p-4">Your backlog is empty. Add the first item using the form.</p>
+                    <% } %>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add New Item Form Column -->
+        <div class="col-lg-4">
+            <div class="card form-card">
+                <div class="card-header">
+                    <i class="fas fa-plus-circle me-2"></i>Add to Backlog
+                </div>
+                <div class="card-body">
+                    <form action="/student/backlog" method="POST">
+                        <input type="hidden" name="teamId" value="<%= team._id %>">
+                        <div class="mb-3">
+                            <label for="description" class="form-label">User Story / Task Description</label>
+                            <textarea class="form-control" id="description" name="description" rows="4" required></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="priority" class="form-label">Priority</label>
+                            <select class="form-select" id="priority" name="priority" required>
+                                <option value="1">High</option>
+                                <option value="2" selected>Medium</option>
+                                <option value="3">Low</option>
+                            </select>
+                        </div>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary">Add Item</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+<% } %>

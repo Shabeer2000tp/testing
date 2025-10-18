@@ -1,0 +1,134 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="welcome-header h3 mb-0">Manage Sprints</h1>
+        <p class="text-muted">Create new sprints and view existing ones.</p>
+    </div>
+</div>
+    <div class="row">
+        <div class="col-lg-5 mb-4">
+            <% if (sprintSetting.value !== 'team') { %>
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="h5 mb-0"><i class="fas fa-plus-circle me-2"></i>Create New Global Sprint</h3>
+                    </div>
+                    <div class="card-body">
+                        <form action="/admin/sprints" method="POST">
+                            <div class="mb-3">
+                                <label for="name" class="form-label">Sprint Name</label>
+                                <input type="text" class="form-control" name="name" placeholder="e.g., Sprint 1" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="goal" class="form-label">Sprint Goal</label>
+                                <textarea class="form-control" name="goal" rows="3" required></textarea>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-6"><label for="startDate">Start Date</label><input type="date" class="form-control" name="startDate" required></div>
+                                <div class="col-6"><label for="endDate">End Date</label><input type="date" class="form-control" name="endDate" required></div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="capacity" class="form-label">Capacity (Story Points)</label>
+                                <input type="number" class="form-control" name="capacity" min="1" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100">Create Sprint</button>
+                        </form>
+                    </div>
+                </div>
+            <% } else { %>
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Sprint creation is in **Team-Specific Mode**. Sprints are managed by students.
+                </div>
+            <% } %>
+        </div>
+
+        <div class="col-lg-7">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="h5 mb-0"><i class="fas fa-list me-2"></i>Existing Sprints</h3>
+                </div>
+                <div class="card-body p-0">
+                    <% if (sprintSetting.value !== 'team') { %>
+                        <% if (sprints.length > 0) { %>
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>Dates</th>
+                                            <th>Capacity</th>
+                                            <th>Status</th>
+                                            <th style="width: 150px;">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <% sprints.forEach(sprint => { %>
+                                            <tr>
+                                                <td><%= sprint.name %></td>
+                                                <td><%= new Date(sprint.startDate).toLocaleDateString() %> - <%= new Date(sprint.endDate).toLocaleDateString() %></td>
+                                                <td><%= sprint.capacity %> SP</td>
+                                                <td>
+                                                    <% 
+                                                        const today = new Date(); today.setHours(0,0,0,0);
+                                                        const startDate = new Date(sprint.startDate); startDate.setHours(0,0,0,0);
+                                                        const endDate = new Date(sprint.endDate); endDate.setHours(0,0,0,0);
+                                                        let statusClass = '', statusText = '';
+                                                        
+                                                        if (sprint.status === 'Completed') {
+                                                            statusClass = 'bg-secondary'; statusText = 'Completed';
+                                                        } else if (today >= startDate && today <= endDate) {
+                                                            statusClass = 'bg-success'; statusText = 'Active';
+                                                        } else {
+                                                            statusClass = 'bg-info text-dark'; statusText = 'Upcoming';
+                                                        }
+                                                    %>
+                                                    <span class="badge <%= statusClass %>"><%= statusText %></span>
+                                                </td>
+                                                <td>
+                                                    <a href="/admin/sprints/<%= sprint._id %>/edit" class="btn btn-sm btn-outline-primary" title="Edit"><i class="fas fa-edit"></i></a>
+                                                    <% if (sprint.status !== 'Completed') { %>
+                                                        <form action="/admin/sprints/<%= sprint._id %>/complete" method="POST" class="d-inline" onsubmit="return confirm('Complete this sprint?');">
+                                                            <button type="submit" class="btn btn-sm btn-outline-success" title="Complete Sprint"><i class="fas fa-flag-checkered"></i></button>
+                                                        </form>
+                                                    <% } %>
+                                                    <form action="/admin/sprints/<%= sprint._id %>/delete" method="POST" class="d-inline" onsubmit="return confirm('Delete this sprint?');">
+                                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete"><i class="fas fa-trash"></i></button>
+                                                    </form>
+                                                </td>
+                                            </tr>
+                                        <% }); %>
+                                    </tbody>
+                                </table>
+                            </div>
+                        <% } else { %>
+                            <p class="text-center text-muted p-4">No global sprints have been created yet.</p>
+                        <% } %>
+                    <% } else { %>
+                        <% if (teamsWithSprints.length > 0) { %>
+                            <% teamsWithSprints.forEach(teamData => { %>
+                                <div class="p-3 border-bottom">
+                                    <strong>Team: <%= teamData.name %></strong>
+                                    <% if (teamData.sprints.length > 0) { %>
+                                        <ul class="list-group list-group-flush mt-2">
+                                            <% teamData.sprints.forEach(sprint => { %>
+                                                <li class="list-group-item d-flex justify-content-between align-items-center ps-0">
+                                                    <%= sprint.name %>
+                                                    <div>
+                                                        <span class="badge bg-info text-dark me-2"><%= sprint.status %></span>
+                                                        <span class="badge bg-secondary rounded-pill"><%= sprint.capacity %> SP</span>
+                                                    </div>
+                                                </li>
+                                            <% }); %>
+                                        </ul>
+                                    <% } else { %>
+                                        <div class="text-muted small ps-2">- No sprints created</div>
+                                    <% } %>
+                                </div>
+                            <% }); %>
+                        <% } else { %>
+                            <p class="text-center text-muted p-4">No teams have created sprints yet.</p>
+                        <% } %>
+                    <% } %>
+                </div>
+            </div>
+        </div>
+    </div>

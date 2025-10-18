@@ -1,0 +1,63 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="welcome-header h3 mb-0">Manage Domains</h1>
+        <p class="text-muted">Add or remove project domains available for proposals.</p>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Create Domain Form Column -->
+    <div class="col-lg-4">
+        <div class="card form-card">
+            <div class="card-header">
+                <i class="fas fa-plus-circle me-2"></i>Add New Domain
+            </div>
+            <div class="card-body">
+                <form action="/admin/domains" method="POST">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Domain Name</label>
+                        <input type="text" class="form-control" id="name" name="name" placeholder="e.g., 'AI/ML'" required>
+                    </div>
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">Add Domain</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Domains List Column -->
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header"><i class="fas fa-layer-group me-2"></i>Existing Domains</div>
+            <div class="card-body p-0">
+                <% if (domains.length > 0) { %>
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Domain Name</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% domains.forEach(domain => { %>
+                                    <tr>
+                                        <td><strong><%= domain.name %></strong></td>
+                                        <td class="text-end">
+                                            <form action="/admin/domains/<%= domain._id %>/delete" method="POST" onsubmit="return confirm('Are you sure? This will remove the domain from all proposals.');">
+                                                <button type="submit" class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                <% }); %>
+                            </tbody>
+                        </table>
+                    </div>
+                <% } else { %>
+                    <p class="text-center text-muted p-4">No domains have been added yet.</p>
+                <% } %>
+            </div>
+        </div>
+    </div>
+</div>

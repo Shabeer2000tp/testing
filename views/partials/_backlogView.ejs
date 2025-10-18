@@ -1,0 +1,26 @@
+<div style="margin-top: 2rem;">
+    <table>
+        <thead>
+            <tr>
+                <th>Description</th>
+                <th>Priority</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            <% if (backlogItems.length > 0) { %>
+                <% backlogItems.forEach(item => { %>
+                    <tr>
+                        <td><%= item.description %></td>
+                        <td><%= item.priority %></td>
+                        <td><%= item.status %></td>
+                    </tr>
+                <% }); %>
+            <% } else { %>
+                <tr>
+                    <td colspan="3">This team's backlog is empty.</td>
+                </tr>
+            <% } %>
+        </tbody>
+    </table>
+</div>

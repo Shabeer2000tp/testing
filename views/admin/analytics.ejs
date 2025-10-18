@@ -1,0 +1,134 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="welcome-header h3 mb-0">Project Analytics</h1>
+        <p class="text-muted">Visualize team performance and project progress.</p>
+    </div>
+</div>
+
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span><i class="fas fa-chart-line me-2"></i>Team Burndown</span>
+            <div class="dropdown">
+                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="teamFilterButton" data-bs-toggle="dropdown">
+                    All Teams
+                </button>
+                <ul class="dropdown-menu" id="teamFilterDropdown">
+                    <li><a class="dropdown-item" href="#" data-team-label="All Teams">All Teams</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="burndown-chart-container">
+                <canvas id="overallBurndownChart"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card">
+        <div class="card-header">
+            <i class="fas fa-tachometer-alt me-2"></i> Team Velocity
+        </div>
+        <div class="card-body">
+            <% if (JSON.parse(velocityData).labels.length > 0) { %>
+                <div class="burndown-chart-container">
+                    <canvas id="velocityChart"></canvas>
+                </div>
+            <% } else { %>
+                <div class="empty-state">
+                    <i class="fas fa-tachometer-alt"></i>
+                    <p>No completed sprints to display velocity chart.</p>
+                </div>
+            <% } %>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header d-flex align-items-center">
+            <i class="fas fa-tags me-2"></i> Status Legend
+        </div>
+        <div class="card-body">
+            <div class="d-flex flex-wrap gap-2">
+                <span class="status-badge status-on-track">On Track</span>
+                <span class="status-badge status-at-risk">At Risk</span>
+                <span class="status-badge status-completed">Completed</span>
+                <span class="status-badge status-in-progress">In Progress</span>
+                <span class="status-badge status-to-do">To-Do</span>
+            </div>
+            <p class="text-muted mt-2 mb-0" style="font-size:.85rem;">Badges match the UI across student/guide/admin pages and are based on task end dates and completion.</p>
+        </div>
+    </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const teamsData = <%- JSON.stringify(teams) %>;
+
+        // Burndown Chart Logic
+        <% if (overallBurndownData) { %>
+            const burndownCtx = document.getElementById('overallBurndownChart');
+            if (burndownCtx) {
+                const allDatasets = <%- overallBurndownData.datasets %>;
+                const allLabels = <%- overallBurndownData.labels %>;
+                const teamFilterDropdown = document.getElementById('teamFilterDropdown');
+                const teamFilterButton = document.getElementById('teamFilterButton');
+
+                allDatasets.forEach(dataset => {
+                    const li = document.createElement('li');
+                    const a = document.createElement('a');
+                    a.className = 'dropdown-item'; a.href = '#'; a.textContent = dataset.label;
+                    a.dataset.teamLabel = dataset.label;
+                    li.appendChild(a);
+                    teamFilterDropdown.appendChild(li);
+                });
+
+                const updateChart = (filterLabel) => {
+                    teamFilterButton.textContent = filterLabel;
+                    burndownChart.data.datasets = (filterLabel === 'All Teams') 
+                        ? allDatasets 
+                        : allDatasets.filter(d => d.label === filterLabel);
+                    burndownChart.update();
+                };
+
+                teamFilterDropdown.addEventListener('click', (e) => {
+                    if (e.target.tagName === 'A') updateChart(e.target.dataset.teamLabel);
+                });
+
+                const burndownChart = new Chart(burndownCtx, {
+                    type: 'line',
+                    data: { labels: allLabels, datasets: allDatasets },
+                    options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, title: { display: true, text: 'Story Points Remaining' }}}}
+                });
+            }
+        <% } %>
+
+        // Velocity Chart Logic (with robust guards)
+        const velocityCtx = document.getElementById('velocityChart');
+        if (velocityCtx) {
+            let parsedVelocity = { labels: [], datasets: [] };
+            try {
+                parsedVelocity = <%- velocityData %> || { labels: [], datasets: [] };
+            } catch (e) { /* keep defaults */ }
+
+            if (Array.isArray(parsedVelocity.labels) && parsedVelocity.labels.length > 0) {
+                const colors = ['rgba(78, 115, 223, 0.7)', 'rgba(28, 200, 138, 0.7)', 'rgba(54, 185, 204, 0.7)', 'rgba(246, 194, 62, 0.7)'];
+                (parsedVelocity.datasets || []).forEach((dataset, index) => {
+                    dataset.backgroundColor = colors[index % colors.length];
+                    dataset.label = dataset.label || `Sprint ${index + 1}`;
+                    dataset.data = dataset.data || [];
+                });
+
+                new Chart(velocityCtx, {
+                    type: 'bar',
+                    data: parsedVelocity,
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: { beginAtZero: true, title: { display: true, text: 'Story Points Completed'} },
+                            x: { title: { display: true, text: 'Sprints'} }
+                        }
+                    }
+                });
+            }
+        }
+    });
+</script>

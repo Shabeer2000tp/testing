@@ -1,0 +1,89 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="welcome-header h3 mb-0">Notification Log</h1>
+        <p class="text-muted">A complete history of all notifications sent from the system.</p>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="fas fa-history me-2"></i>Sent Notifications</span>
+        <form action="/admin/notifications/log" method="GET" class="d-flex align-items-center gap-2">
+            <input type="text" name="search" class="form-control form-control-sm" placeholder="Search..." value="<%= search %>">
+            <input type="date" name="startDate" class="form-control form-control-sm" title="Start Date" value="<%= startDate || '' %>">
+            <input type="date" name="endDate" class="form-control form-control-sm" title="End Date" value="<%= endDate || '' %>">
+            <button type="submit" class="btn btn-sm btn-primary">Filter</button>
+            <a href="/admin/notifications/log" class="btn btn-sm btn-outline-secondary">Clear</a>
+        </form>
+    </div>
+    <div class="card-body p-0">
+        <% if (notifications.length > 0) { %>
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Recipient</th>
+                            <th>Message</th>
+                            <th>Sent By</th>
+                            <th>Date</th>
+                            <th class="text-end">Actions</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% notifications.forEach(notification => { %>
+                            <tr>
+                                <td>
+                                    <% if (notification.recipient && notification.recipient.profileId && notification.recipient.profileId.name) { %>
+                                        <%= notification.recipient.profileId.name %>
+                                    <% } else { %>
+                                        <span class="text-muted">N/A</span>
+                                    <% } %>
+                                </td>
+                                <td><%= notification.message.substring(0, 50) %>...</td>
+                                <td><%= notification.senderName %></td>
+                                <td><%= new Date(notification.createdAt).toLocaleString() %></td>
+                                <td>
+                                    <form action="/admin/notifications/<%= notification._id %>/resend" method="POST" class="d-inline">
+                                        <button type="submit" class="btn btn-sm btn-outline-secondary" title="Resend">
+                                            <i class="fas fa-redo"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                                <td>
+                                    <% if (notification.isRead) { %>
+                                        <span class="badge bg-secondary">Read</span>
+                                    <% } else { %>
+                                        <span class="badge bg-primary">Unread</span>
+                                    <% } %>
+                                </td>
+                            </tr>
+                        <% }); %>
+                    </tbody>
+                </table>
+            </div>
+        <% } else { %>
+            <p class="text-center text-muted p-4">No notifications have been sent yet.</p>
+        <% } %>
+    </div>
+
+    <% if (totalPages > 1) { %>
+        <div class="card-footer">
+            <nav aria-label="Notification log pagination">
+                <ul class="pagination justify-content-center mb-0">
+                    <li class="page-item <%= currentPage === 1 ? 'disabled' : '' %>">
+                        <a class="page-link" href="/admin/notifications/log?page=<%= currentPage - 1 %>&search=<%= search %>&startDate=<%= startDate || '' %>&endDate=<%= endDate || '' %>">Previous</a>
+                    </li>
+                    <% for(let i = 1; i <= totalPages; i++) { %>
+                        <li class="page-item <%= i === currentPage ? 'active' : '' %>">
+                            <a class="page-link" href="/admin/notifications/log?page=<%= i %>&search=<%= search %>&startDate=<%= startDate || '' %>&endDate=<%= endDate || '' %>"><%= i %></a>
+                        </li>
+                    <% } %>
+                    <li class="page-item <%= currentPage === totalPages ? 'disabled' : '' %>">
+                        <a class="page-link" href="/admin/notifications/log?page=<%= currentPage + 1 %>&search=<%= search %>&startDate=<%= startDate || '' %>&endDate=<%= endDate || '' %>">Next</a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    <% } %>
+</div>

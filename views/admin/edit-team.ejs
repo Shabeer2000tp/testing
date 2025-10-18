@@ -1,0 +1,55 @@
+<%- include('../partials/_header.ejs', { title: title, user: user, sprintSetting: sprintSetting }) %>
+
+<div class="main-content">
+    <div class="welcome-header">
+        <h1>Edit Team</h1>
+        <p>Modify the details for team: <strong><%= team.name %></strong></p>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-header">
+            <i class="fas fa-edit me-2"></i>Team Details
+        </div>
+        <div class="card-body">
+            <%- include('../partials/_messages.ejs') %>
+            
+            <form action="/admin/teams/<%= team._id %>/update" method="POST">
+                <div class="mb-4">
+                    <label for="name" class="form-label">Team / Project Name</label>
+                    <input type="text" class="form-control" id="name" name="name" value="<%= team.name %>" required>
+                </div>
+
+                <div class="mb-4">
+                    <label for="students" class="form-label">Assign Students</label>
+                    <div class="form-text mb-2">Hold Ctrl/Cmd to select or unselect students.</div>
+                    <select class="form-select" name="students" id="students" multiple required size="8">
+                        <% allStudents.forEach(student => { %>
+                            <option value="<%= student._id %>" <%= team.students.some(id => id.equals(student._id)) ? 'selected' : '' %>>
+                                <%= student.name %> (<%= student.studentIdNumber %>)
+                            </option>
+                        <% }); %>
+                    </select>
+                </div>
+
+                <div class="mb-4">
+                    <label for="guide" class="form-label">Assign Guide</label>
+                    <select class="form-select" name="guide" id="guide" required>
+                        <% allGuides.forEach(guide => { %>
+                            <option value="<%= guide._id %>" <%= team.guide.equals(guide._id) ? 'selected' : '' %>>
+                                <%= guide.name %>
+                            </option>
+                        <% }); %>
+                    </select>
+                </div>
+
+                <div class="d-flex justify-content-end">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-2"></i> Update Team
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<%- include('../partials/_footer.ejs') %>

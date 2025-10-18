@@ -1,0 +1,75 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="welcome-header h3 mb-0">Review Proposals</h1>
+        <p class="text-muted">Approve or reject proposals submitted by guides.</p>
+    </div>
+</div>
+
+<% if (proposals.length > 0) { %>
+    <div class="accordion proposal-accordion" id="proposalsAccordion">
+        <% proposals.forEach((proposal, index) => { %>
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="heading-<%= index %>">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-<%= index %>">
+                        <span class="me-3"><i class="fas fa-file-alt text-primary"></i></span>
+                        <div class="flex-grow-1">
+                            <strong><%= proposal.title %></strong>
+                            <div class="small text-muted">Team: <%= proposal.team.name %></div>
+                        </div>
+                    </button>
+                </h2>
+                <div id="collapse-<%= index %>" class="accordion-collapse collapse" data-bs-parent="#proposalsAccordion">
+                    <div class="accordion-body">
+                        <div class="row">
+                            <div class="col-md-7">
+                                <h5>Proposal Details</h5>
+                                <dl class="proposal-details-grid">
+                                    <dt>Team:</dt>
+                                    <dd><%= proposal.team.name %></dd>
+
+                                    <dt>Guide:</dt>
+                                    <dd><%= proposal.team.guide.name %></dd>
+
+                                    <dt>Domain:</dt>
+                                    <dd><%= proposal.domain.name %></dd>
+
+                                    <dt>Description:</dt>
+                                    <dd><%= proposal.description %></dd>
+
+                                    <dt>Guide Feedback:</dt>
+                                    <dd class="fst-italic"><%= proposal.guideFeedback || 'No feedback provided.' %></dd>
+                                </dl>
+                            </div>
+                            <div class="col-md-5">
+                                <h5>Admin Action</h5>
+                                <form action="/admin/proposals/<%= proposal._id %>/approve" method="POST" class="mb-3">
+                                    <div class="mb-2">
+                                        <label for="approveFeedback-<%= index %>" class="form-label">Optional Feedback (for Approval)</label>
+                                        <textarea class="form-control form-control-sm" name="feedback" id="approveFeedback-<%= index %>" rows="2"></textarea>
+                                    </div>
+                                    <button type="submit" class="btn btn-success w-100">Approve Proposal</button>
+                                </form>
+                                <hr>
+                                <form action="/admin/proposals/<%= proposal._id %>/reject" method="POST">
+                                    <div class="mb-2">
+                                        <label for="rejectFeedback-<%= index %>" class="form-label">Rejection Feedback (Required)</label>
+                                        <textarea class="form-control form-control-sm" name="feedback" id="rejectFeedback-<%= index %>" rows="2" required></textarea>
+                                    </div>
+                                    <button type="submit" class="btn btn-danger w-100">Reject Proposal</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        <% }); %>
+    </div>
+<% } else { %>
+    <div class="card">
+        <div class="card-body text-center p-5">
+            <i class="fas fa-check-double fa-3x text-muted mb-3"></i>
+            <h5 class="text-muted">All caught up!</h5>
+            <p class="mb-0">There are no pending proposals to review.</p>
+        </div>
+    </div>
+<% } %>

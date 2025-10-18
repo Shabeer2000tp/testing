@@ -1,0 +1,35 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="welcome-header h3 mb-0">Project Calendar</h1>
+        <p class="text-muted">An overview of your sprints, reviews, and important dates.</p>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <i class="fas fa-calendar-alt me-2"></i>Your Calendar
+    </div>
+    <div class="card-body">
+        <div id="calendar"></div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const calendarEl = document.getElementById('calendar');
+        if (calendarEl) {
+            const calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'dayGridMonth',
+                headerToolbar: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'dayGridMonth,timeGridWeek,listWeek'
+                },
+                events: <%- JSON.stringify(calendarEvents) %>,
+                eventColor: '#111', // Use the primary accent color for events
+                eventDisplay: 'block'
+            });
+            calendar.render();
+        }
+    });
+</script>

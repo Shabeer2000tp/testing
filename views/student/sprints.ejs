@@ -1,0 +1,88 @@
+<%- include('../partials/_header.ejs', { title: title }) %>
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0">Manage Sprints for Team: <%= team.name %></h1>
+    </div>
+
+    <%- include('../partials/_messages.ejs') %>
+
+    <% if (sprintSetting.value === 'team') { %>
+        <div class="card shadow-sm mb-4">
+            <div class="card-header">
+                <i class="fas fa-plus-circle me-2"></i><strong>Plan a New Sprint</strong>
+            </div>
+            <div class="card-body">
+                <form action="/student/sprints" method="POST">
+                    <input type="hidden" name="teamId" value="<%= team._id %>">
+                    
+                    <div class="row">
+                        <div class="col-md-8 mb-3">
+                            <label for="name" class="form-label">Sprint Name</label>
+                            <input type="text" name="name" id="name" class="form-control" placeholder="e.g., Sprint 1: User Authentication" required>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="capacity" class="form-label">Capacity (Story Points)</label>
+                            <input type="number" name="capacity" id="capacity" class="form-control" placeholder="e.g., 20" required>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="goal" class="form-label">Sprint Goal</label>
+                        <textarea name="goal" id="goal" class="form-control" rows="2" required placeholder="e.g., Complete the core features for user login and registration."></textarea>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="startDate" class="form-label">Start Date</label>
+                            <input type="date" name="startDate" id="startDate" class="form-control" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="endDate" class="form-label">End Date</label>
+                            <input type="date" name="endDate" id="endDate" class="form-control" required>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100 mt-2">Create Sprint</button>
+                </form>
+            </div>
+        </div>
+    <% } else { %>
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle me-2"></i>
+            Sprint creation is currently managed by the Administrator (Global Mode).
+        </div>
+    <% } %>
+
+    <div class="card shadow-sm">
+        <div class="card-header">
+            <i class="fas fa-list-ul me-2"></i><strong>Planned Sprints</strong>
+        </div>
+        <div class="card-body p-0">
+            <% if (sprints && sprints.length > 0) { %>
+                <ul class="list-group list-group-flush">
+                    <% sprints.forEach(sprint => { %>
+                        <li class="list-group-item d-flex justify-content-between align-items-center p-3">
+                            <div>
+                                <h6 class="mb-0"><%= sprint.name %></h6>
+                                <small class="text-muted">
+                                    <%= new Date(sprint.startDate).toLocaleDateString() %> - <%= new Date(sprint.endDate).toLocaleDateString() %>
+                                </small>
+                            </div>
+                            <div>
+                                <span class="badge bg-info text-dark me-2"><%= sprint.status %></span>
+                                <span class="badge bg-secondary rounded-pill"><%= sprint.capacity %> SP</span>
+                            </div>
+                        </li>
+                    <% }) %>
+                </ul>
+            <% } else { %>
+                <div class="text-center p-4 text-muted">
+                    No sprints have been planned for your team yet.
+                </div>
+            <% } %>
+        </div>
+    </div>
+</div>
+
+<%- include('../partials/_footer.ejs') %>

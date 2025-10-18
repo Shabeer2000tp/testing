@@ -1,0 +1,49 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="welcome-header h3 mb-0">Edit Your Proposal</h1>
+        <p class="text-muted">Revise your proposal based on the feedback and resubmit for review.</p>
+    </div>
+    <div>
+        <a href="/student/proposal" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-1"></i> Back to Proposal Status
+        </a>
+    </div>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card form-card">
+            <div class="card-header">
+                <i class="fas fa-edit me-2"></i>Revising: <%= proposal.title %>
+            </div>
+            <div class="card-body">
+                <form action="/student/proposal/update" method="POST">
+                    <div class="mb-3">
+                        <label for="title" class="form-label">Project Title</label>
+                        <input type="text" class="form-control" id="title" name="title" value="<%= proposal.title %>" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="domain" class="form-label">Project Domain</label>
+                        <select class="form-select" id="domain" name="domain" required>
+                            <% domains.forEach(domain => { %>
+                                <option value="<%= domain._id %>" <%= proposal.domain.equals(domain._id) ? 'selected' : '' %>>
+                                    <%= domain.name %>
+                                </option>
+                            <% }); %>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Project Description</label>
+                        <textarea class="form-control" id="description" name="description" rows="5" required><%= proposal.description %></textarea>
+                    </div>
+                    <div class="alert alert-info">
+                        <strong>Note:</strong> Resubmitting will send your proposal back to your guide for approval.
+                    </div>
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary btn-lg">Update and Resubmit</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

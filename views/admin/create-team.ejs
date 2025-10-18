@@ -1,0 +1,73 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="welcome-header h3 mb-0">Create New Team</h1>
+        <p class="text-muted">Assemble students and assign a guide.</p>
+    </div>
+    <div>
+        <a href="/admin/teams" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-1"></i> Back to Teams List
+        </a>
+    </div>
+</div>
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card form-card">
+        <div class="card-header">
+                <i class="fas fa-users-cog me-2"></i>Team Details
+        </div>
+        <div class="card-body">
+            <form action="/admin/teams" method="POST">
+                <div class="mb-4">
+                    <label for="name" class="form-label">Team / Project Name</label>
+                    <input type="text" class="form-control" id="name" name="name" placeholder="Enter a descriptive team name" required>
+                </div>
+
+                <div class="mb-4">
+                    <label for="students" class="form-label">Assign Students</label>
+                    <div class="form-text mb-2">Hold Ctrl/Cmd or use the checkbox to select multiple students.</div>
+                    <select class="form-select" name="students" id="students" multiple required size="6">
+                        <% students.forEach(student => { %>
+                            <option value="<%= student._id %>">
+                                <%= student.name %> (<%= student.studentIdNumber %>)
+                            </option>
+                        <% }); %>
+                    </select>
+                    <div class="form-check mt-2">
+                        <input class="form-check-input" type="checkbox" id="selectAllStudents">
+                        <label class="form-check-label" for="selectAllStudents">
+                            Select All Students
+                        </label>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label for="guide" class="form-label">Assign Guide</label>
+                    <select class="form-select" name="guide" id="guide" required>
+                        <option value="" disabled selected>-- Select a Guide --</option>
+                        <% guides.forEach(guide => { %>
+                            <option value="<%= guide._id %>"><%= guide.name %></option>
+                        <% }); %>
+                    </select>
+                </div>
+
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary btn-lg">Create Team</button>
+                    </div>
+            </form>
+        </div>
+    </div>
+</div></div>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const selectAllCheckbox = document.getElementById('selectAllStudents');
+        const studentSelect = document.getElementById('students');
+        
+        if (selectAllCheckbox && studentSelect) {
+            selectAllCheckbox.addEventListener('change', function() {
+                for (let i = 0; i < studentSelect.options.length; i++) {
+                    studentSelect.options[i].selected = this.checked;
+                }
+            });
+        }
+    });
+</script>

@@ -1,0 +1,108 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="welcome-header h3 mb-0">Daily Log</h1>
+        <p class="text-muted">Record your daily progress and any blockers.</p>
+    </div>
+</div>
+
+<% if (!activeSprint) { %>
+    <div class="card text-center">
+        <div class="card-body p-5">
+            <i class="fas fa-pause-circle fa-3x text-muted mb-3"></i>
+            <h5 class="text-muted">No Active Sprint</h5>
+            <p>You can only submit daily logs during an active sprint.</p>
+        </div>
+    </div>
+<% } else { %>
+    <div class="row">
+        <!-- Daily Logs History Column -->
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header"><i class="fas fa-history me-2"></i>Your Log History (Current Sprint)</div>
+                <div class="card-body p-0">
+                    <% if (dailyLogs.length > 0) { %>
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Log Summary</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <% dailyLogs.forEach(log => { %>
+                                        <tr>
+                                            <td><%= new Date(log.createdAt).toLocaleDateString() %></td>
+                                            <td><%= log.logContent.substring(0, 70) %>...</td>
+                                            <td>
+                                                <% if (log.isBlocked) { %>
+                                                    <span class="badge bg-danger">Blocked</span>
+                                                <% } else { %>
+                                                    <span class="badge bg-success">On Track</span>
+                                                <% } %>
+                                            </td>
+                                        </tr>
+                                    <% }); %>
+                                </tbody>
+                            </table>
+                        </div>
+                    <% } else { %>
+                        <p class="text-center text-muted p-4">You haven't submitted any logs for this sprint yet.</p>
+                    <% } %>
+                </div>
+            </div>
+        </div>
+
+        <!-- Submit New Log Form Column -->
+        <div class="col-lg-4">
+            <div class="card form-card">
+                <div class="card-header">
+                    <i class="fas fa-plus-circle me-2"></i>Submit Today's Log
+                </div>
+                <div class="card-body">
+                    <% if (existingLog) { %>
+                        <div class="alert alert-success">
+                            <i class="fas fa-check-circle me-2"></i>
+                            You have already submitted your log for today.
+                        </div>
+                    <% } else { %>
+                        <form action="/student/daily-log" method="POST">
+                            <input type="hidden" name="sprintId" value="<%= activeSprint._id %>">
+                            <input type="hidden" name="teamId" value="<%= team._id %>">
+                            <div class="mb-3">
+                                <label for="logContent" class="form-label">What did you work on today?</label>
+                                <textarea class="form-control" id="logContent" name="logContent" rows="5" required></textarea>
+                            </div>
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="checkbox" id="isBlocked" name="isBlocked">
+                                <label class="form-check-label" for="isBlocked">
+                                    I am currently blocked.
+                                </label>
+                            </div>
+                            <div class="mb-3" id="blocker-description-group" style="display: none;">
+                                <label for="blockerDescription" class="form-label">Blocker Description</label>
+                                <textarea class="form-control" id="blockerDescription" name="blockerDescription" rows="3"></textarea>
+                            </div>
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-primary">Submit Log</button>
+                            </div>
+                        </form>
+                    <% } %>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const isBlockedCheckbox = document.getElementById('isBlocked');
+            const blockerGroup = document.getElementById('blocker-description-group');
+            if (isBlockedCheckbox && blockerGroup) {
+                isBlockedCheckbox.addEventListener('change', function() {
+                    blockerGroup.style.display = this.checked ? 'block' : 'none';
+                });
+            }
+        });
+    </script>
+<% } %>

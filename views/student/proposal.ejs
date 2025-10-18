@@ -1,0 +1,84 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="welcome-header h3 mb-0">Project Proposal</h1>
+        <p class="text-muted">Submit your team's project proposal for review.</p>
+    </div>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <% if (!team) { %>
+            <div class="card text-center">
+                <div class="card-body p-5">
+                    <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+                    <h5 class="card-title">Not Assigned to a Team</h5>
+                    <p class="text-muted">You must be assigned to a team by an administrator before you can submit a proposal.</p>
+                </div>
+            </div>
+        <% } else if (proposal) { %>
+            <!-- Proposal Status View -->
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-file-signature me-2"></i>Your Submitted Proposal
+                </div>
+                <div class="card-body p-4">
+                    <h4 class="card-title"><%= proposal.title %></h4>
+                    <h6 class="card-subtitle mb-3 text-muted">Domain: <%= proposal.domain.name %></h6>
+                    <p class="card-text"><%= proposal.description %></p>
+                    <hr>
+                    <div class="d-flex align-items-center">
+                        <strong class="me-3">Status:</strong>
+                        <% if (proposal.status === 'Approved') { %>
+                            <span class="badge bg-success fs-6">Approved</span>
+                        <% } else if (proposal.status === 'Rejected') { %>
+                            <span class="badge bg-danger fs-6">Rejected</span>
+                        <% } else { %>
+                            <span class="badge bg-info fs-6"><%= proposal.status %></span>
+                        <% } %>
+                    </div>
+
+                    <% if (proposal.status === 'Rejected') { %>
+                        <div class="alert alert-warning mt-3">
+                            <strong>Admin Feedback:</strong> <%= proposal.adminFeedback || 'No feedback provided.' %>
+                            <div class="mt-2">
+                                <a href="/student/proposal/edit" class="btn btn-sm btn-primary">Edit and Resubmit</a>
+                            </div>
+                        </div>
+                    <% } %>
+                </div>
+            </div>
+        <% } else { %>
+            <!-- New Proposal Form -->
+            <div class="card form-card">
+                <div class="card-header">
+                    <i class="fas fa-plus-circle me-2"></i>Submit New Proposal
+                </div>
+                <div class="card-body">
+                    <form action="/student/proposal" method="POST">
+                        <input type="hidden" name="teamId" value="<%= team._id %>">
+                        <div class="mb-3">
+                            <label for="title" class="form-label">Project Title</label>
+                            <input type="text" class="form-control" id="title" name="title" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="domain" class="form-label">Project Domain</label>
+                            <select class="form-select" id="domain" name="domain" required>
+                                <option value="" disabled selected>-- Select a Domain --</option>
+                                <% domains.forEach(domain => { %>
+                                    <option value="<%= domain._id %>"><%= domain.name %></option>
+                                <% }); %>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Project Description</label>
+                            <textarea class="form-control" id="description" name="description" rows="5" required></textarea>
+                        </div>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary btn-lg">Submit for Review</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        <% } %>
+    </div>
+</div>

@@ -1,0 +1,150 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="welcome-header h3 mb-0">Past Sprints</h1>
+        <p class="text-muted">A history of your team's completed sprints.</p>
+    </div>
+</div>
+
+<% if (pastSprints.length > 0) { %>
+    <div class="accordion past-sprint-accordion" id="pastSprintsAccordion">
+        <% pastSprints.forEach((sprint, index) => { %>
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="heading-<%= index %>">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-<%= index %>">
+                        <span class="me-3"><i class="fas fa-history text-secondary"></i></span>
+                        <div class="flex-grow-1">
+                            <strong><%= sprint.name %></strong>
+                            <div class="small text-muted">Completed on: <%= new Date(sprint.endDate).toLocaleDateString() %></div>
+                        </div>
+                    </button>
+                </h2>
+                <div id="collapse-<%= index %>" class="accordion-collapse collapse" data-bs-parent="#pastSprintsAccordion">
+                    <div class="accordion-body">
+                        <div class="row">
+                            <!-- Left Column: Burndown Chart -->
+                            <div class="col-lg-7">
+                                <div class="card">
+                                    <div class="card-header"><i class="fas fa-chart-line me-2"></i>Sprint Burndown</div>
+                                    <div class="card-body" style="position: relative; height: 300px;">
+                                        <% if (sprint.burndownChartData) { %>
+                                            <div class="burndown-chart-container">
+                                                <canvas id="burndownChart-<%= sprint._id %>" data-sprint-id="<%= sprint._id %>"></canvas>
+                                            </div>
+                                        <% } else { %>
+                                            <p class="text-center text-muted p-4">No burndown data available for this sprint.</p>
+                                        <% } %>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Right Column: Tasks -->
+                            <div class="col-lg-5">
+                                <div class="card">
+                                    <div class="card-header"><i class="fas fa-tasks me-2"></i>Tasks in Sprint</div>
+                                    <div class="card-body p-0">
+                                        <% if (sprint.tasks && sprint.tasks.length > 0) { %>
+                                            <div class="table-responsive">
+                                                <table class="table table-sm table-hover mb-0">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>Task</th>
+                                                            <th>Status</th>
+                                                            <th>Points</th>
+                                                            <th class="text-end">Action</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        <% sprint.tasks.forEach(task => { %>
+                                                            <tr>
+                                                                <td><%= task.description %></td>
+                                                                <td>
+                                                                    <% if (task.status === 'Done') { %>
+                                                                        <span class="badge bg-success">Done</span>
+                                                                    <% } else { %>
+                                                                        <span class="badge bg-secondary">Incomplete</span>
+                                                                    <% } %>
+                                                                </td>
+                                                                <td><span class="badge bg-dark"><%= task.storyPoints %></span></td>
+                                                                <td class="text-end">
+                                                                    <% if (task.status !== 'Done' && !task.isMoved) { %>
+                                                                        <form action="/student/tasks/<%= task._id %>/move" method="POST" onsubmit="return confirm('Move this task to the current active sprint?');">
+                                                                            <button type="submit" class="btn btn-sm btn-outline-primary">Move Task</button>
+                                                                        </form>
+                                                                    <% } %>
+                                                                </td>
+                                                            </tr>
+                                                        <% }); %>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        <% } else { %>
+                                            <p class="text-center text-muted p-4">No tasks were recorded for this sprint.</p>
+                                        <% } %>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        <% }); %>
+    </div>
+<% } else { %>
+    <div class="card">
+        <div class="card-body text-center p-5">
+            <i class="fas fa-box-open fa-3x text-muted mb-3"></i>
+            <h5 class="text-muted">No Past Sprints</h5>
+            <p class="mb-0">There are no completed sprints to display yet.</p>
+        </div>
+    </div>
+<% } %>
+
+<!-- ✅ Chart.js logic -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Prepare chart data for each sprint
+        const sprintData = {
+            <% pastSprints.forEach(sprint => { %>
+                "<%= sprint._id %>": {
+                    labels: <%- sprint.burndownChartData ? sprint.burndownChartData.labels : '[]' %>,
+                    data: <%- sprint.burndownChartData ? sprint.burndownChartData.actualData : '[]' %>
+                },
+            <% }); %>
+        };
+
+        // Render chart when accordion is opened
+        document.querySelectorAll('.accordion-collapse').forEach(collapse => {
+            collapse.addEventListener('shown.bs.collapse', function() {
+                const canvas = collapse.querySelector('canvas[id^="burndownChart-"]');
+                if (canvas && !canvas.dataset.rendered) {
+                    const sprintId = canvas.dataset.sprintId;
+                    const ctx = canvas.getContext('2d');
+                    const data = sprintData[sprintId];
+                    if (data) {
+                        new Chart(ctx, {
+                            type: 'line',
+                            data: {
+                                labels: data.labels,
+                                datasets: [{
+                                    label: 'Remaining Work',
+                                    data: data.data,
+                                    borderColor: 'rgb(78, 115, 223)',
+                                    tension: 0.1,
+                                    fill: false
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                scales: {
+                                    y: { beginAtZero: true }
+                                }
+                            }
+                        });
+                        canvas.dataset.rendered = 'true'; // avoid re-rendering
+                    }
+                }
+            });
+        });
+    });
+</script>

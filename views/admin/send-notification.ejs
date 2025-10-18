@@ -1,0 +1,51 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="welcome-header h3 mb-0">Send Notification</h1>
+        <p class="text-muted">Broadcast a message to students, guides, or specific users.</p>
+    </div>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card form-card">
+            <div class="card-header">
+                <i class="fas fa-paper-plane me-2"></i>Compose Notification
+            </div>
+            <div class="card-body">
+                <form action="/admin/notifications" method="POST" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label for="recipients" class="form-label">Recipient(s)</label>
+                        <select name="recipients" id="recipients" class="form-select" multiple required size="10">
+                            <optgroup label="All Users">
+                                <option value="all_students">All Students</option>
+                                <option value="all_guides">All Guides</option>
+                            </optgroup>
+                            <optgroup label="Specific Guides">
+                                <% guides.forEach(guide => { %>
+                                    <option value="<%= guide._id %>"><%= guide.profileId ? guide.profileId.name : guide.email %></option>
+                                <% }); %>
+                            </optgroup>
+                            <optgroup label="Specific Students">
+                                <% students.forEach(student => { %>
+                                    <option value="<%= student._id %>"><%= student.profileId ? student.profileId.name : student.email %></option>
+                                <% }); %>
+                            </optgroup>
+                        </select>
+                        <div class="form-text">Hold Ctrl/Cmd to select multiple recipients.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="message" class="form-label">Message</label>
+                        <textarea name="message" id="message" class="form-control" rows="4" required></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="link" class="form-label">Optional Link</label>
+                        <input type="text" name="link" id="link" class="form-control" placeholder="e.g., /student/upload">
+                    </div>
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">Send Notification</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

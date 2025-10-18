@@ -1,0 +1,55 @@
+<div class="welcome-header">
+    <h1>Welcome, <%= user.name %>!</h1>
+    <p class="text-muted">Here's the status of your assigned teams.</p>
+</div>
+
+<% if (teams.length > 0) { %>
+    <div class="card-container">
+        <% teams.forEach(team => { %>
+            <div class="team-card">
+                <a href="/guide/teams/<%= team._id %>" class="team-card-link">
+                    <div class="team-card-body">
+                        <h5 class="team-name"><%= team.name %></h5>
+                        <p class="team-guide"><i class="fas fa-user-tie me-2"></i>Guided by: <%= team.guide.name %></p>
+
+                        <% if (team.sprintCapacity > 0) { %>
+                            <div class="progress-section">
+                                <div class="progress-header">
+                                    <span class="progress-title">Active Sprint Progress</span>
+                                    <span class="progress-value"><%= team.completedStoryPoints %> / <%= team.sprintCapacity %> SP</span>
+                                </div>
+                                <div class="progress-bar-wrapper">
+                                    <% const sprintPercentage = (team.completedStoryPoints / team.sprintCapacity) * 100; %>
+                                    <div class="progress-bar-inner sprint-progress" style="width: <%= sprintPercentage.toFixed(2) %>%;"></div>
+                                </div>
+                            </div>
+                        <% } else { %>
+                            <div class="no-sprint-message">
+                                No active sprint for this team.
+                            </div>
+                        <% } %>
+
+                        <% if (team.overallTotalPoints > 0) { %>
+                            <div class="progress-section">
+                                <div class="progress-header">
+                                    <span class="progress-title">Overall Project Completion</span>
+                                    <span class="progress-value"><%= team.overallCompletedPoints %> / <%= team.overallTotalPoints %> SP</span>
+                                </div>
+                                <div class="progress-bar-wrapper">
+                                    <% const overallPercentage = (team.overallCompletedPoints / team.overallTotalPoints) * 100; %>
+                                    <div class="progress-bar-inner overall-progress" style="width: <%= overallPercentage.toFixed(2) %>%;"></div>
+                                </div>
+                            </div>
+                        <% } %>
+                    </div>
+                </a>
+            </div>
+        <% }); %>
+    </div>
+<% } else { %>
+    <div class="card">
+        <div class="card-body text-center p-5">
+            <p class="text-muted mb-0">You are not assigned to any teams yet.</p>
+        </div>
+    </div>
+<% } %>

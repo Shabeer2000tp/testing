@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Evaluation Report: <%= team.name %></title>
+    <style>
+        body { font-family: 'Times New Roman', Times, serif; line-height: 1.6; color: #333; }
+        .report-container { max-width: 800px; margin: auto; padding: 2rem; }
+        h1, h2, h3 { text-align: center; border-bottom: 2px solid #ddd; padding-bottom: 10px; }
+        .section { margin-bottom: 2rem; }
+        table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        .print-btn { display: block; width: 100px; margin: 2rem auto; padding: 10px; text-align: center; background: #007bff; color: white; border-radius: 5px; cursor: pointer; text-decoration: none; }
+        @media print {
+            body { padding: 0; }
+            .print-btn, .back-link { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <div class="report-container">
+        <a href="/admin/teams/<%= team._id %>" class="back-link">&larr; Back to Team Details</a>
+        <h1>Final Evaluation Report</h1>
+
+        <div class="section">
+            <h2>Project & Team Details</h2>
+            <p><strong>Project Title:</strong> <%= proposal.title %></p>
+            <p><strong>Team Name:</strong> <%= team.name %></p>
+            <p><strong>Domain:</strong> <%= proposal.domain.name %></p>
+            <p><strong>Guide:</strong> <%= team.guide.name %></p>
+            <p><strong>Students:</strong></p>
+            <ul>
+                <% team.students.forEach(student => { %>
+                    <li><%= student.name %></li>
+                <% }); %>
+            </ul>
+        </div>
+
+        <div class="section">
+            <h2>Performance Summary</h2>
+            <p><strong>Total Sprints Completed:</strong> <%= team.velocityHistory.length %></p>
+            <p><strong>Total Tasks Completed:</strong> <%= completedTasks.length %> / <%= tasks.length %></p>
+            <p><strong>Total Story Points Completed:</strong> <%= totalPointsCompleted %></p>
+        </div>
+        
+        <div class="section">
+            <h2>Velocity Report</h2>
+            <table>
+                <thead><tr><th>Sprint</th><th>Completed Story Points</th></tr></thead>
+                <tbody>
+                    <% team.velocityHistory.forEach(sprint => { %>
+                        <tr>
+                            <td><%= sprint.sprintName %></td>
+                            <td><%= sprint.completedPoints %></td>
+                        </tr>
+                    <% }); %>
+                </tbody>
+            </table>
+        </div>
+
+        <a href="#" onclick="window.print();" class="print-btn">Print Report</a>
+    </div>
+</body>
+</html>

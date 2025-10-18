@@ -1,0 +1,134 @@
+<div class="welcome-header">
+    <h1>Welcome, <%= adminName %>!</h1>
+    <p class="text-muted">Here's a high-level overview of your projects.</p>
+</div>
+
+<!-- Stat Cards Row -->
+<div class="row">
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stat-card border-primary">
+            <div class="card-body">
+                <div class="stat-card-title">Total Teams</div>
+                <div class="stat-card-value"><%= totalTeams %></div>
+                <i class="fas fa-users stat-card-icon"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stat-card border-success">
+            <div class="card-body">
+                <div class="stat-card-title">Projects On Track</div>
+                <div class="stat-card-value"><%= projectsOnTrack %></div>
+                <i class="fas fa-check-circle stat-card-icon"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stat-card border-warning">
+            <div class="card-body">
+                <div class="stat-card-title">Projects At Risk</div>
+                <div class="stat-card-value"><%= projectsAtRisk %></div>
+                <i class="fas fa-exclamation-triangle stat-card-icon"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stat-card border-danger">
+            <div class="card-body">
+                <div class="stat-card-title">Projects Delayed</div>
+                <div class="stat-card-value"><%= projectsDelayed %></div>
+                <i class="fas fa-calendar-times stat-card-icon"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Main Content Row -->
+<div class="row">
+    <!-- Left Column -->
+    <div class="col-lg-7">
+        <!-- Pending User Approvals -->
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-user-clock me-2"></i>Pending User Approvals
+            </div>
+            <div class="card-body p-0">
+                <% if (pendingUsers.length > 0) { %>
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Role</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% pendingUsers.forEach(user => { %>
+                                    <tr>
+                                        <td><%= user.profileId ? user.profileId.name : 'N/A' %></td>
+                                        <td><%= user.email %></td>
+                                        <td><span class="badge bg-secondary text-capitalize"><%= user.role %></span></td>
+                                        <td>
+                                            <form action="/admin/users/<%= user._id %>/approve" method="POST" class="d-inline">
+                                                <button type="submit" class="btn btn-sm btn-success"><i class="fas fa-check"></i></button>
+                                            </form>
+                                            <form action="/admin/users/<%= user._id %>/reject" method="POST" class="d-inline">
+                                                <button type="submit" class="btn btn-sm btn-danger"><i class="fas fa-times"></i></button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                <% }); %>
+                            </tbody>
+                        </table>
+                    </div>
+                <% } else { %>
+                    <p class="text-center text-muted p-4 mb-0">No pending users to approve.</p>
+                <% } %>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column -->
+    <div class="col-lg-5">
+        <!-- At-Risk Projects -->
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-exclamation-circle me-2"></i>At-Risk Project Details
+            </div>
+            <div class="card-body">
+                <% if (atRiskDetails && atRiskDetails.length > 0) { %>
+                    <div class="accordion accordion-flush" id="atRiskAccordion">
+                        <% atRiskDetails.forEach((team, idx) => { %>
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="heading-<%= idx %>">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-<%= idx %>">
+                                        <div class="flex-grow-1">
+                                            <strong><%= team.teamName %></strong>
+                                            <span class="badge bg-warning rounded-pill ms-2"><%= team.atRiskCount %> at-risk tasks</span>
+                                        </div>
+                                    </button>
+                                </h2>
+                                <div id="collapse-<%= idx %>" class="accordion-collapse collapse" data-bs-parent="#atRiskAccordion">
+                                    <div class="accordion-body p-0">
+                                        <ul class="list-group list-group-flush">
+                                            <% team.tasks.forEach(task => { %>
+                                                <li class="list-group-item">
+                                                    <div><%= task.description %></div>
+                                                    <small class="text-muted">Due: <%= new Date(task.endDate).toLocaleDateString() %> - Status: <%= task.status %></small>
+                                                </li>
+                                            <% }); %>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        <% }); %>
+                    </div>
+                <% } else { %>
+                    <p class="text-center text-muted mb-0">No projects are currently classified as at-risk. Great job!</p>
+                <% } %>
+            </div>
+        </div>
+    </div>
+</div>

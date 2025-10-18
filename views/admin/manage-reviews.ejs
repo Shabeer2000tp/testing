@@ -1,0 +1,88 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="welcome-header h3 mb-0">Schedule Reviews</h1>
+        <p class="text-muted">Create new review sessions and assign panel members to teams.</p>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Create Review Form Column -->
+    <div class="col-lg-5">
+        <div class="card form-card">
+            <div class="card-header">
+                <i class="fas fa-plus-circle me-2"></i>Schedule New Review
+            </div>
+            <div class="card-body">
+                <form action="/admin/reviews" method="POST">
+                    <div class="mb-3">
+                        <label for="teams" class="form-label">Select Team(s)</label>
+                        <select class="form-select" id="teams" name="teams" multiple required size="5">
+                            <% teams.forEach(team => { %>
+                                <option value="<%= team._id %>"><%= team.name %></option>
+                            <% }); %>
+                        </select>
+                        <div class="form-text">Hold Ctrl/Cmd to select multiple teams.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="panel" class="form-label">Select Panel Members</label>
+                        <select class="form-select" id="panel" name="panel" multiple required size="5">
+                            <% guides.forEach(guide => { %>
+                                <option value="<%= guide._id %>"><%= guide.name %></option>
+                            <% }); %>
+                        </select>
+                        <div class="form-text">Hold Ctrl/Cmd to select multiple guides.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="reviewDate" class="form-label">Review Date & Time</label>
+                        <input type="datetime-local" class="form-control" id="reviewDate" name="reviewDate" required>
+                    </div>
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">Schedule Review</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Existing Reviews List Column -->
+    <div class="col-lg-7">
+        <div class="card">
+            <div class="card-header"><i class="fas fa-list-ul me-2"></i>Scheduled Reviews</div>
+            <div class="card-body p-0">
+                <% if (reviews.length > 0) { %>
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Team</th>
+                                    <th>Date</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% reviews.forEach(review => { %>
+                                    <tr>
+                                        <td><strong><%= review.team.name %></strong></td>
+                                        <td><%= new Date(review.reviewDate).toLocaleString() %></td>
+                                        <td>
+                                            <a href="/admin/reviews/<%= review._id %>" class="btn btn-sm btn-outline-primary" title="View Details">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            <form action="/admin/reviews/<%= review._id %>/delete" method="POST" class="d-inline" onsubmit="return confirm('Are you sure?');">
+                                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                <% }); %>
+                            </tbody>
+                        </table>
+                    </div>
+                <% } else { %>
+                    <p class="text-center text-muted p-4">No reviews have been scheduled yet.</p>
+                <% } %>
+            </div>
+        </div>
+    </div>
+</div>

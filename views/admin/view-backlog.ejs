@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Backlog: <%= team.name %></title>
+    <%- include('../partials/_styles.ejs') %>
+</head>
+<body>
+    <div style="padding: 2rem;">
+        <h1>Project Backlog: <%= team.name %></h1>
+        <a href="/admin/teams">&larr; Back to All Teams</a>
+        <%- include('../partials/_backlogView', { backlogItems: backlogItems }) %>
+    </div>
+</body>
+</html>

@@ -1,0 +1,29 @@
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6 col-xl-5">
+        <div class="card auth-card">
+            <div class="card-body p-4 p-sm-5">
+                <div class="text-center mb-4">
+                    <img src="/Sslogo Black-01.svg" alt="Sprint Sync Logo" class="auth-logo">
+                    <p class="text-muted">Sign in to continue</p>
+                </div>
+
+                <form action="/login" method="POST">
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="email" name="email" required>
+                    </div>
+                    <div class="mb-4">
+                        <label for="password" class="form-label">Password</label>
+                        <input type="password" class="form-control" id="password" name="password" required>
+                    </div>
+                    <div class="d-grid mb-3">
+                        <button type="submit" class="btn btn-primary btn-lg">Login</button>
+                    </div>
+                    <div class="text-center">
+                        <p class="mb-0">Don't have an account? <a href="/register">Register here</a></p>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

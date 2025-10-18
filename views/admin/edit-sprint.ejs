@@ -1,0 +1,63 @@
+<%- include('../partials/_header.ejs', { title: title, user: user, sprintSetting: sprintSetting }) %>
+
+<div class="main-content">
+    <div class="welcome-header">
+        <h1>Edit Sprint</h1>
+        <p>Update the details for the sprint: <strong><%= sprint.name %></strong></p>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-header">
+            <i class="fas fa-edit me-2"></i>Sprint Details
+        </div>
+        <div class="card-body">
+            <%- include('../partials/_messages.ejs') %>
+            
+            <form action="/admin/sprints/<%= sprint._id %>/update" method="POST">
+                <div class="row mb-4">
+                    <div class="col-md-8">
+                        <label for="name" class="form-label">Sprint Name</label>
+                        <input type="text" class="form-control" id="name" name="name" value="<%= sprint.name %>" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="status" class="form-label">Status</label>
+                        <select id="status" name="status" class="form-select">
+                            <option value="Pending" <%= sprint.status === 'Pending' ? 'selected' : '' %>>Pending</option>
+                            <option value="Active" <%= sprint.status === 'Active' ? 'selected' : '' %>>Active</option>
+                            <option value="Completed" <%= sprint.status === 'Completed' ? 'selected' : '' %>>Completed</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label for="goal" class="form-label">Sprint Goal</label>
+                    <textarea class="form-control" id="goal" name="goal" rows="3" required><%= sprint.goal %></textarea>
+                </div>
+
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <label for="startDate" class="form-label">Start Date</label>
+                        <input type="date" class="form-control" id="startDate" name="startDate" value="<%= sprint.startDate.toISOString().split('T')[0] %>" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="endDate" class="form-label">End Date</label>
+                        <input type="date" class="form-control" id="endDate" name="endDate" value="<%= sprint.endDate.toISOString().split('T')[0] %>" required>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label for="capacity" class="form-label">Capacity (Story Points)</label>
+                    <input type="number" class="form-control" id="capacity" name="capacity" value="<%= sprint.capacity %>" min="1" required>
+                </div>
+
+                <div class="d-flex justify-content-end">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-2"></i> Update Sprint
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<%- include('../partials/_footer.ejs') %>

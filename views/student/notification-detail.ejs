@@ -1,0 +1,44 @@
+<div class="mb-4 d-flex justify-content-between align-items-center">
+    <div>
+        <h1 class="welcome-header h3 mb-0">Notification Detail</h1>
+        <p class="text-muted">Details for the notification you selected.</p>
+    </div>
+    <div>
+        <a href="/student/notifications" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-1"></i> Back to Notifications
+        </a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">From: <%= notification.senderName %></h5>
+            <small class="text-muted">
+                <i class="far fa-clock me-1"></i><%= new Date(notification.createdAt).toLocaleString() %>
+            </small>
+        </div>
+    </div>
+    <div class="card-body p-4">
+        <h6 class="text-muted mb-2">Message:</h6>
+        <p class="lead mb-4"><%= notification.message %></p>
+
+        <% if (notification.attachment && notification.attachment.path) { %>
+            <div class="mt-4">
+                <h6 class="mb-2"><i class="fas fa-paperclip me-2"></i>Attachment</h6>
+                <a href="/<%= notification.attachment.path %>" download class="btn btn-primary">
+                    <i class="fas fa-download me-1"></i><%= notification.attachment.originalName || 'Download Attachment' %>
+                </a>
+            </div>
+        <% } %>
+
+        <% if (notification.link && notification.link !== '#') { %>
+            <div class="mt-4">
+                <h6 class="mb-2"><i class="fas fa-link me-2"></i>Related Link</h6>
+                <a href="<%= notification.link %>" class="btn btn-primary">
+                    <i class="fas fa-external-link-alt me-1"></i>Open Link
+                </a>
+            </div>
+        <% } %>
+    </div>
+</div>

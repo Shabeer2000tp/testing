@@ -1,0 +1,162 @@
+<%- include('../partials/_header.ejs', { title: title, user: user, sprintSetting: sprintSetting }) %>
+
+<div class="main-content">
+    <div class="welcome-header">
+        <h1>Team: <%= team.name %></h1>
+        <p>Guide: <%= team.guide.name %></p>
+    </div>
+
+    <%- include('../partials/_messages.ejs') %>
+
+    <% if (activeSprint) { %>
+        <div class="row">
+            <div class="col-lg-8">
+                <div class="card mb-4">
+                    <div class="card-header"><i class="fas fa-tasks me-2"></i>Sprint Tasks</div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Task</th>
+                                        <th>Assigned To</th>
+                                        <th>Points</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <% team.tasks.forEach(task => { %>
+                                        <tr>
+                                            <td><%= task.description %></td>
+                                            <td>
+                                                <% if (task.assignedToAll) { %>
+                                                    All Members
+                                                <% } else { %>
+                                                    <%= task.assignedTo.name %>
+                                                <% } %>
+                                            </td>
+                                            <td><span class="badge bg-secondary"><%= task.storyPoints %></span></td>
+                                            <td>
+                                                <% 
+                                                    const __now = new Date();
+                                                    let __badgeText = '';
+                                                    let __badgeClass = '';
+                                                    if (task.status === 'Done') {
+                                                        __badgeText = 'Completed';
+                                                        __badgeClass = 'status-completed';
+                                                    } else if (task.endDate) {
+                                                        const __end = new Date(task.endDate);
+                                                        const __days = Math.ceil((__end - __now) / (1000 * 60 * 60 * 24));
+                                                        if (__days <= 2) { __badgeText = 'At Risk'; __badgeClass = 'status-at-risk'; }
+                                                        else { __badgeText = 'On Track'; __badgeClass = 'status-on-track'; }
+                                                    } else { __badgeText = 'On Track'; __badgeClass = 'status-on-track'; }
+                                                %>
+                                                <span class="status-badge <%= __badgeClass %>"><%= __badgeText %></span>
+                                            </td>
+                                        </tr>
+                                    <% }); %>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mb-4">
+                    <div class="card-header"><i class="fas fa-chart-line me-2"></i>Burndown Chart</div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="burndownChart-<%= team._id %>"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-4">
+                <div class="card mb-4">
+                    <div class="card-header"><i class="fas fa-flag me-2"></i>Sprint Progress</div>
+                    <div class="card-body">
+                        <h5><%= activeSprint.name %></h5>
+                        <p class="text-muted"><%= activeSprint.goal %></p>
+                        <hr>
+                        <div class="progress-header">
+                            <span class="progress-title">Completed</span>
+                            <span class="progress-value"><%= team.completedStoryPoints %> / <%= team.sprintCapacity %> SP</span>
+                        </div>
+                        <div class="progress">
+                            <div class="progress-bar" style="width: <%= (team.completedStoryPoints / (team.sprintCapacity || 1)) * 100 %>%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mb-4">
+                    <div class="card-header"><i class="fas fa-clipboard-list me-2"></i>Daily Logs</div>
+                    <div class="card-body">
+                        <% if (dailyLogs.length > 0) { %>
+                            <% dailyLogs.forEach(log => { %>
+                                <div class="log-entry">
+                                    <strong><%= log.student.name %>:</strong>
+                                    <p class="log-content"><%= log.logContent %></p>
+                                    <% if (log.isBlocked) { %>
+                                        <div class="blocker">
+                                            <strong>Blocker:</strong> <%= log.blockerDescription %>
+                                            <% if (!log.guideFeedback) { %>
+                                                <form action="/guide/logs/<%= log._id %>/feedback" method="POST" class="feedback-form mt-2">
+                                                    <textarea name="feedback" class="form-control form-control-sm" placeholder="Add feedback..." rows="2" required></textarea>
+                                                    <button type="submit" class="btn btn-sm btn-primary">Send</button>
+                                                </form>
+                                            <% } else { %>
+                                                <p class="mt-2"><strong>Your Feedback:</strong> <%= log.guideFeedback %></p>
+                                            <% } %>
+                                        </div>
+                                    <% } %>
+                                </div>
+                            <% }); %>
+                        <% } else { %>
+                            <p class="text-muted">No daily logs for this sprint.</p>
+                        <% } %>
+                    </div>
+                </div>
+            </div>
+        </div>
+    <% } else { %>
+        <div class="card">
+            <div class="card-body text-center text-muted">
+                This team does not have an active sprint.
+            </div>
+        </div>
+    <% } %>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        <% if (team && team.burndownChartData) { %>
+            const ctx = document.getElementById('burndownChart-<%= team._id %>');
+            if (ctx) {
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: <%- team.burndownChartData.labels %>,
+                        datasets: [
+                            {
+                                label: 'Remaining Work',
+                                data: <%- team.burndownChartData.actualData %>,
+                                borderColor: 'rgb(75, 192, 192)',
+                                fill: true
+                            },
+                            {
+                                label: 'Ideal Pace',
+                                data: <%- team.burndownChartData.idealData %>,
+                                borderColor: 'rgb(255, 99, 132)',
+                                borderDash: [5, 5],
+                                fill: false
+                            }
+                        ]
+                    }
+                });
+            }
+        <% } %>
+    });
+</script>
+
+<%- include('../partials/_footer.ejs') %>
