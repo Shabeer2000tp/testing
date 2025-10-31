@@ -216,7 +216,7 @@ exports.getTeamsListPage = async (req, res) => {
             query.name = { $regex: search, $options: 'i' }; // Case-insensitive search
         }
 
-        const teams = await Team.find(query).populate('guide', 'name').populate('students', 'name');
+        const teams = await Team.find(query).populate('guide', 'name').populate('students', 'name studentIdNumber');
         const allSprints = await Sprint.find({});
         const overallTotalPoints = allSprints.reduce((sum, sprint) => sum + (sprint.capacity || 0), 0);
 
@@ -252,12 +252,16 @@ exports.getTeamsListPage = async (req, res) => {
                 team.sprintCapacity = activeSprintForTeam.capacity;
                 team.completedStoryPoints = tasks.filter(task => task.status === 'Done').reduce((sum, task) => sum + (task.storyPoints || 0), 0);
                 team.activeSprintName = activeSprintForTeam.name; // Add sprint name
+            } else {
+                // Mark team as unscheduled when no active sprint exists
+                team.isUnscheduled = true;
             }
 
             const allCompletedTasks = await Task.find({ team: team._id, status: 'Done' });
             team.overallCompletedPoints = allCompletedTasks.reduce((sum, task) => sum + (task.storyPoints || 0), 0);
             // --- ADD THIS BLOCK TO FETCH PROPOSAL DOMAIN ---
             const proposal = await Proposal.findOne({ team: team._id, status: 'Approved' }).populate('domain');
+            team.projectTitle = proposal ? proposal.title : 'Untitled Project';
             team.domainName = proposal && proposal.domain ? proposal.domain.name : 'N/A';
             team.overallTotalPoints = overallTotalPoints;
         }
@@ -297,11 +301,16 @@ exports.getTeamsListPage = async (req, res) => {
 exports.getTeamDetailPage = async (req, res) => {
     try {
         const teamId = req.params.id;
-        const team = await Team.findById(teamId).populate('guide students');
+        const team = await Team.findById(teamId).populate('guide', 'name').populate('students', 'name studentIdNumber');
         if (!team) {
             req.flash('error_msg', 'Team not found.');
             return res.redirect(`/${req.session.user.role}/dashboard`);
         }
+
+        // --- FIX: Fetch the approved proposal to get the project title ---
+        const proposal = await Proposal.findOne({ team: team._id, status: 'Approved' }).populate('domain');
+        team.domainName = proposal && proposal.domain ? proposal.domain.name : 'N/A';
+        // --- End of fix ---
 
         const startOfToday = new Date();
         startOfToday.setHours(0, 0, 0, 0);
@@ -921,7 +930,7 @@ exports.getRiskDebug = async (req, res) => {
             if (lastSprint) tasks = await Task.find({ team: team._id, sprint: lastSprint._id });
 
             if (!lastSprint) {
-                details.push({ teamId: team._id, teamName: team.name, classification: 'onTrack', reason: 'no sprint found' });
+                details.push({ teamId: team._id, teamName: team.name, classification: 'unscheduled', reason: 'no sprint found' });
                 continue;
             }
 

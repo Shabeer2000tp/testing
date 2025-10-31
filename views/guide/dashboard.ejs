@@ -8,10 +8,17 @@
         <% teams.forEach(team => { %>
             <div class="team-card">
                 <a href="/guide/teams/<%= team._id %>" class="team-card-link">
+                    <div class="team-card-header">
+                        <div class="team-info">
+                            <h5 class="team-name"><%= team.name %></h5>
+                            <p class="project-title"><%= team.projectTitle %></p>
+                            <p class="project-domain small text-muted">
+                                <i class="fas fa-layer-group me-1"></i>
+                                <%= team.domainName || 'No Domain' %>
+                            </p>
+                        </div>
+                    </div>
                     <div class="team-card-body">
-                        <h5 class="team-name"><%= team.name %></h5>
-                        <p class="team-guide"><i class="fas fa-user-tie me-2"></i>Guided by: <%= team.guide.name %></p>
-
                         <% if (team.sprintCapacity > 0) { %>
                             <div class="progress-section">
                                 <div class="progress-header">
@@ -41,6 +48,20 @@
                                 </div>
                             </div>
                         <% } %>
+
+                        <!-- ✅ Members -->
+                        <div class="team-members mt-3">
+                            <h6 class="members-title">Members</h6>
+                            <div class="member-list">
+                                <% if (team.students && team.students.length > 0) { %>
+                                    <% team.students.forEach(student => { %>
+                                        <span class="member-chip"><%= student.name %></span>
+                                    <% }) %>
+                                <% } else { %>
+                                    <p class="small text-muted">No members assigned</p>
+                                <% } %>
+                            </div>
+                        </div>
                     </div>
                 </a>
             </div>

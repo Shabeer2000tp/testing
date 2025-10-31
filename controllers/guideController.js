@@ -13,7 +13,7 @@ const { getTaskStatusInfo } = require('../helpers/taskHelper');
 exports.getDashboard = async (req, res) => {
     try {
         const guideId = req.session.user.profileId;
-        const teams = await Team.find({ guide: guideId }).populate('guide');
+        const teams = await Team.find({ guide: guideId }).populate('guide', 'name').populate('students', 'name studentIdNumber');
 
         const startOfToday = new Date();
         startOfToday.setHours(0, 0, 0, 0);
@@ -53,11 +53,17 @@ exports.getDashboard = async (req, res) => {
                 // Use the sprint's total capacity for the progress bar total
                 team.sprintCapacity = activeSprintForTeam.capacity;
                 team.completedStoryPoints = tasks.filter(task => task.status === 'Done').reduce((sum, task) => sum + (task.storyPoints || 0), 0);
+                team.activeSprintName = activeSprintForTeam.name; // Add sprint name
             }
 
             const allCompletedTasks = await Task.find({ team: team._id, status: 'Done' });
             team.overallCompletedPoints = allCompletedTasks.reduce((sum, task) => sum + (task.storyPoints || 0), 0);
             team.overallTotalPoints = overallTotalPoints;
+
+            // --- FIX: Add project/domain name to team object ---
+            const proposal = await Proposal.findOne({ team: team._id, status: 'Approved' }).populate('domain');
+            team.projectTitle = proposal ? proposal.title : 'Untitled Project';
+            team.domainName = proposal && proposal.domain ? proposal.domain.name : 'N/A';
         }
 
         res.render('guide/dashboard', {
@@ -143,12 +149,16 @@ exports.getTeamDetailPage = async (req, res) => {
     try {
         const teamId = req.params.id;
         const guideId = req.session.user.profileId;
-        const team = await Team.findOne({ _id: teamId, guide: guideId }).populate('guide students');
+        const team = await Team.findOne({ _id: teamId, guide: guideId }).populate('guide', 'name').populate('students', 'name studentIdNumber');
         
         if (!team) {
             req.flash('error_msg', 'Team not found or you are not authorized to view it.');
             return res.redirect('/guide/dashboard');
         }
+
+        // --- FIX: Add project/domain name to team object for detail page ---
+        const proposal = await Proposal.findOne({ team: team._id, status: 'Approved' }).populate('domain');
+        team.domainName = proposal && proposal.domain ? proposal.domain.name : 'N/A';
 
         const startOfToday = new Date();
         startOfToday.setHours(0, 0, 0, 0);

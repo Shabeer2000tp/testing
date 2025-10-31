@@ -1,4 +1,4 @@
-<div class="sidebar d-flex flex-column">
+<div class="sidebar d-flex flex-column p-3">
     <div class="sidebar-logo-container">
         <img src="/Sslogo White-02.svg" alt="Sprint Sync Logo" class="sidebar-logo">
     </div>
@@ -50,7 +50,7 @@
 
     <% if (user) { %>
         <div class="mt-auto p-3">
-            <div class="small text-center mb-2">Logged in as: <%= user.name %></div>
+            <div class="small text-white text-center mb-2">Logged in as: <%= user.name %></div>
             <form action="/logout" method="POST">
                 <button class="btn btn-outline-light w-100" type="submit"><i class="fas fa-sign-out-alt me-2"></i>Logout</button>
             </form>

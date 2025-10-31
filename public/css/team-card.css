@@ -1,0 +1,85 @@
+.card-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 20px;
+}
+
+/* Team Cards */
+.team-card {
+    background: #111;
+    border: 1px solid #2b2b2b;
+    border-radius: 12px;
+    padding: 18px;
+    transition: transform .2s ease, border-color .2s ease;
+}
+.team-card:hover {
+    transform: translateY(-4px);
+    border-color: #3f8cff;
+}
+
+/* Layout */
+.team-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+/* Progress Sections */
+.progress-section {
+    margin-top: 4px;
+}
+
+.progress-title {
+    font-size: 0.85rem;
+    color: #bbb;
+}
+
+/* Progress Bars */
+.progress-bar-wrapper {
+    width: 100%;
+    height: 8px;
+    background: #333;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-top: 4px;
+}
+
+.progress-bar-inner {
+    height: 100%;
+    border-radius: 4px;
+    transition: width .4s ease;
+}
+
+/* Colors */
+.sprint-progress {
+    background: #4aa3ff;
+}
+.overall-progress {
+    background: #5fd46d;
+}
+
+/* Progress Text */
+.progress-value {
+    font-size: 0.75rem;
+    color: #88a;
+}
+
+/* Avatars */
+.team-members-avatars {
+    display: flex;
+    gap: 6px;
+}
+.avatar {
+    width: 28px;
+    height: 28px;
+    background: #222;
+    color: #fff;
+    border-radius: 50%;
+    font-size: 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.avatar-more {
+    background: #444;
+}

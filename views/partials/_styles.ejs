@@ -1,405 +1,401 @@
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+
 <style>
-  /* --- Global Variables --- */
-  :root {
-      /* Color Palette */
-      --primary-bg: #f9f9f9;
-      --primary-text: #111;
-      --secondary-text: #444;
-      --muted-text: #555;
-      --footer-text: #777;
-      --accent-bg: #111;
-      --accent-hover: #444;
-      --accent-text: #fff;
-      --card-bg: #fff;
-      --input-border: #ddd;
-      --shadow-light: rgba(0, 0, 0, 0.05);
-      --shadow-medium: rgba(0, 0, 0, 0.1);
 
-      /* Typography */
-      --font-family: 'Helvetica', sans-serif;
-      --lh: 1.6;
-  }
+/* -------------------------------------------------
+   COLOR PALETTE (Black + Silver + Subtle Blue Accent)
+--------------------------------------------------- */
+:root {
+  --black: #000000;
+  --dark-gray: #1A1A1A;
+  --gray: #3A3A3A;
+  --light-gray: #D9D9D9;
+  --silver: #E6E6E6;
+  --accent: #3DA5FF;  /* subtle academic blue */
+  --white: #FFFFFF;
+}
 
-  /* --- Base Styles --- */
-  html {
-      scroll-behavior: smooth;
-  }
+/* -------------------------------------------------
+   GLOBAL PAGE RESET
+--------------------------------------------------- */
+body {
+  background-color: var(--dark-gray);
+  color: var(--white);
+  margin: 0;
+  font-family: "Inter", sans-serif;
+  letter-spacing: .3px;
+}
 
-  body {
-      font-family: var(--font-family);
-      font-weight: 400;
-      background-color: var(--primary-bg);
-      color: var(--secondary-text);
-      line-height: var(--lh);
-      margin: 0;
-  }
+.app-body {
+  display: flex;
+}
 
-  .app-body {
-      display: flex;
-  }
-   
-  /* --- Main Content --- */
-  .main-content {
-      margin-left: 250px;
-      padding: 4rem 2rem;
-      width: calc(100% - 250px); 
-      background-image: url('/background-pattern.png'); /* Add your background image here */
-      background-size: cover;
-      background-position: center;
-      background-color: var(--primary-bg);
-      min-height: 100vh;
-      max-width: 1200px;
-      margin-left: 250px; /* Sidebar offset */
-      margin-right: auto;
-  }
+.main-content {
+  flex-grow: 1;
+  padding: 28px;
+  margin-left: 250px; /* Match sidebar width */
+  width: calc(100% - 250px);
+}
 
-  /* --- Typography --- */
-  h1, h2, h3, h4, h5, h6 {
-      font-weight: 700;
-      color: var(--primary-text);
-      letter-spacing: -0.4px;
-  }
-  .welcome-header h1, .welcome-header .h3 {
-      font-size: 1.8rem;
-      font-weight: 700;
-      color: var(--primary-text);
-      margin-bottom: 0.25rem;
-  }
-  .welcome-header p {
-      font-size: 1.05rem;
-      color: var(--muted-text);
-      margin-bottom: 0;
-  }
-  p {
-      font-size: 0.95rem;
-      line-height: var(--lh);
-  }
+a {
+  text-decoration: none;
+  color: var(--accent);
+}
 
-  /* --- Sidebar / Header --- */
-  .sidebar {
-      width: 250px;
-      height: 100vh;
-      position: fixed;
-      top: 0;
-      left: 0;
-      background-color: var(--accent-bg);
-      color: var(--accent-text);
-      z-index: 1000;
-  }
-  .sidebar .h5 {
-      font-weight: 700;
-      letter-spacing: -0.5px;
-  }
-  .sidebar .nav-link {
-      color: rgba(255, 255, 255, 0.8);
-      transition: opacity 0.3s ease;
-  }
-  .sidebar .nav-link:hover {
-      opacity: 0.6;
-  }
-  .sidebar .nav-link.active {
-      font-weight: 700;
-      color: var(--accent-text);
-      opacity: 1;
-  }
-  .sidebar .btn-outline-light {
-      border-color: rgba(255, 255, 255, 0.5);
-      color: rgba(255, 255, 255, 0.8);
-  }
+a:hover {
+  opacity: 0.8;
+}
 
-  /* --- Buttons --- */
-  .btn-primary {
-      background-color: var(--accent-bg);
-      border-color: var(--accent-bg);
-      color: var(--accent-text);
-      padding: 0.7rem 1.5rem;
-      border-radius: 4px;
-      letter-spacing: 0.3px;
-      transition: background-color 0.3s ease;
-  }
-  .btn-primary:hover {
-      background-color: var(--accent-hover);
-      border-color: var(--accent-hover);
-  }
+.text-muted {
+  color: var(--light-gray) !important; /* Override Bootstrap's default for dark theme */
+}
 
-  /* --- Cards --- */
-  .card {
-      background-color: var(--card-bg);
-      border: 1px solid #eee;
-      box-shadow: 0 2px 10px var(--shadow-light);
-      margin-bottom: 2rem;
-      width: 100%;
-      border-radius: 8px;
-  }
-  .team-card, .stat-card {
-      padding: 0;
-      box-shadow: 0 4px 15px var(--shadow-light);
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
-      margin-bottom: 0; /* Let the container handle gap */
-  }
-  .team-card:hover, .stat-card:hover {
-      transform: translateY(-8px);
-      box-shadow: 0 10px 20px var(--shadow-medium);
-  }
-  .card-header {
-      background-color: transparent;
-      border-bottom: 1px solid #eee;
-      font-weight: 600;
-      font-size: 1.05rem;
-      color: var(--secondary-text);
-  }
-  .card-title {
-      font-size: 1.05rem;
-      font-weight: 700;
-  }
-  .card p, .card .text-muted {
-      color: var(--muted-text);
-  }
-  .card-container {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-      gap: 1.5rem;
-  }
 
-  /* --- Forms --- */
-  .form-card .card-body {
-      padding: 2rem;
-  }
-  .form-control, .form-select {
-      font-family: var(--font-family);
-      border: 1px solid var(--input-border);
-  }
-  .form-control:focus, .form-select:focus {
-      border-color: var(--primary-text);
-      box-shadow: 0 0 0 0.25rem rgba(17, 17, 17, 0.1);
-  }
+/* -------------------------------------------------
+   NAVBAR (Black Academic Style)
+   ** This is now the Sidebar **
+--------------------------------------------------- */
+.sidebar {
+  width: 250px;
+  height: 100vh;
+  position: fixed;
+  top: 0;
+  left: 0;
+  background-color: var(--black);
+  z-index: 1000;
+}
 
-  /* --- Authentication Pages --- */
-  .auth-bg {
-      background-color: var(--primary-bg);
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 4rem 2rem;
-  }
-  .auth-card {
-      max-width: 450px;
-      padding: 1.5rem;
-      box-shadow: 0 10px 30px var(--shadow-medium);
-  }
-  .auth-header {
-      font-size: 2.4rem;
-      font-weight: 700;
-      letter-spacing: -0.5px;
-      color: var(--primary-text);
-  }
+/* Sidebar Logo */
+.sidebar-logo {
+  height: 70px; /* Adjust as needed */
+  width: auto;
+}
 
-  /* --- Footer (Conceptual, since it's in the sidebar) --- */
-  .sidebar .mt-auto {
-      padding-top: 4rem;
-      padding-bottom: 2rem;
-      text-align: center;
-  }
-  .sidebar .small {
-      font-size: 0.9rem;
-      color: var(--footer-text);
-  }
+.sidebar-logo-container {
+  padding: 1rem 1.5rem;
+  text-align: left;
+}
 
-  /* --- Specific Component Tweaks for New Design --- */
-  .table {
-      color: var(--secondary-text);
-  }
-  .table thead th {
-      color: var(--primary-text);
-      font-weight: 600;
-  }
-  .badge {
-      font-weight: 600;
-  }
-  .progress-bar-wrapper {
-      height: 6px;
-      background-color: #eee;
-      border-radius: 6px;
-      overflow: hidden;
-  }
-  .progress-bar-inner {
-      height: 100%;
-      transition: width 0.6s ease;
-  }
-  .sprint-progress { background-color: var(--primary-text); }
-  .overall-progress { background-color: #aaa; }
+/* Sidebar Navigation Links */
+.sidebar .nav-link {
+  color: var(--silver); /* Default link color */
+  font-size: 15px;
+  padding: 10px 16px;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
 
-  .nav-tabs .nav-link {
-      color: var(--muted-text);
-      font-weight: 600;
-  }
-  .nav-tabs .nav-link.active {
-      color: var(--primary-text);
-  }
+.sidebar .nav-link:hover {
+  background-color: var(--gray); /* Darker gray on hover */
+  color: var(--white); /* Brighter text on hover */
+  border-radius: 6px;
+}
 
-  .accordion-button:not(.collapsed) {
-      background-color: #f0f0f0;
-      color: var(--primary-text);
-      box-shadow: none;
-  }
-  .accordion-item {
-      border-color: #eee;
-  }
+.sidebar .nav-link.active {
+  background-color: var(--accent); /* Accent color for active link */
+  color: var(--black); /* Dark text on accent background */
+  font-weight: 600;
+  border-radius: 6px;
+}
 
-  .priority-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.35rem;
-      padding: 0.275rem 0.6rem;
-      border-radius: 999px;
-      font-size: 0.75rem;
-      font-weight: 600;
-  }
-  .priority-1 { /* High */
-      color: #991b1b;
-      background-color: #fee2e2;
-  }
-  .priority-2 { /* Medium */
-      color: #9a3412;
-      background-color: #ffedd5;
-  }
-  .priority-3 { /* Low */
-      color: #166534;
-      background-color: #dcfce7;
-  }
+/* Sidebar Logout Button */
+.sidebar .btn-outline-light {
+    color: var(--silver);
+    border-color: var(--gray);
+}
 
-  .burndown-chart-container {
-      position: relative;
-      height: 300px;
-      width: 100%;
-  }
+.sidebar .btn-outline-light:hover {
+    color: var(--white);
+    background-color: var(--gray);
+    border-color: var(--gray);
+}
 
-  .avatar {
-      height: 32px;
-      width: 32px;
-      border-radius: 50%;
-      background-color: #ddd;
-      color: var(--primary-text);
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 0.8rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      border: 2px solid white;
-      margin-left: -10px;
-  }
+/* -------------------------------------------------
+   PAGE CONTAINERS
+--------------------------------------------------- */
+.container-custom {
+  max-width: 1250px;
+  margin: auto;
+  padding: 28px;
+}
 
-  /* --- Refined Stat Card --- */
-  .stat-card {
-      border-left-width: 4px;
-      border-radius: 4px;
-  }
-  .stat-card .card-body {
-      position: relative;
-      padding: 1.5rem;
-  }
-  .stat-card-title {
-      text-transform: uppercase;
-      font-size: 0.8rem;
-      font-weight: 700;
-      margin-bottom: 0.25rem;
-  }
-  .stat-card-value {
-      font-size: 2rem;
-      font-weight: 700;
-      color: var(--primary-text);
-  }
-  .stat-card-icon {
-      position: absolute;
-      right: 1.5rem;
-      top: 50%;
-      transform: translateY(-50%);
-      font-size: 2.8rem;
-      opacity: 0.1;
-      transition: opacity 0.3s ease;
-  }
-  .stat-card:hover .stat-card-icon {
-      opacity: 0.15;
-  }
-  .stat-card.border-primary { border-color: #4e73df; }
-  .stat-card.border-primary .stat-card-title { color: #4e73df; }
-  .stat-card.border-success { border-color: #1cc88a; }
-  .stat-card.border-success .stat-card-title { color: #1cc88a; }
-  .stat-card.border-info { border-color: #36b9cc; }
-  .stat-card.border-info .stat-card-title { color: #36b9cc; }
-  .stat-card.border-warning { border-color: #f6c23e; }
-  .stat-card.border-warning .stat-card-title { color: #f6c23e; }
-  .stat-card.border-danger { border-color: #e74a3b; }
-  .stat-card.border-danger .stat-card-title { color: #e74a3b; }
+/* -------------------------------------------------
+   CARDS
+--------------------------------------------------- */
+.card {
+  background-color: var(--gray);
+  color: var(--white);
+  border-radius: 10px;
+  border: none;
+  padding: 18px 22px;
+  margin-bottom: 18px;
+  transition: transform .2s ease;
+}
 
-  /* --- Refined Team Card --- */
-  .team-card {
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-  }
-  .team-card-link {
-      text-decoration: none;
-      color: inherit;
-      display: flex;
-      flex-direction: column;
-      flex-grow: 1;
-      padding: 1.5rem;
-  }
-  .team-card-body {
-      flex-grow: 1;
-  }
-  .team-name {
-      font-size: 1.2rem;
-      font-weight: 700;
-      color: var(--primary-text);
-  }
-  .team-guide {
-      font-size: 0.9rem;
-      color: var(--muted-text);
-      margin-bottom: 1rem;
-  }
-  .progress-section {
-      margin-bottom: 1rem;
-  }
-  .progress-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 0.3rem;
-      font-size: 0.8rem;
-      font-weight: 600;
-  }
-  .progress-title { color: var(--secondary-text); }
-  .progress-value { color: var(--muted-text); }
+.card .card-subtitle {
+  color: var(--silver);
+}
 
-  /* --- Refined Card Actions --- */
-  .card-actions {
-      display: flex;
-      justify-content: flex-end;
-      gap: 0.5rem;
-      padding: 0.75rem 1.5rem;
-      border-top: 1px solid #eee;
-      background-color: #fafafa;
-  }
-  .btn-action {
-      font-size: 0.8rem;
-  }
+/* --- NEW TEAM CARD DESIGN --- */
 
-  /* --- Logo Styles --- */
-  .sidebar-logo {
-      height: 70px; /* 2x size */
-      width: auto;
+.team-card-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  margin-top: 1rem;
+}
+
+.team-card {
+  background-color: var(--dark-gray);
+  border: 1px solid var(--gray);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.2s ease-in-out;
+  flex: 1 1 calc(33.333% - 16px); /* Default: 3 cards per row. 16px = 2/3 of 24px gap */
+  overflow: hidden; /* Ensures child elements respect the border radius */
+}
+
+.team-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+  border-color: var(--accent);
+}
+
+.team-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 20px 20px 16px 20px;
+  border-bottom: 1px solid var(--gray);
+}
+
+.team-card-header h5 {
+  margin: 0;
+  font-weight: 600;
+  font-size: 1.1rem;
+  line-height: 1.3;
+}
+
+.team-card-body {
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  flex-grow: 1; /* Allows body to fill space */
+}
+
+.team-members {
+  font-size: 14px;
+  color: var(--light-gray);
+  line-height: 1.6;
+}
+
+.team-members strong {
+  color: var(--silver);
+  font-weight: 500;
+}
+
+.team-card-actions {
+  margin-top: auto; /* Pushes actions to the bottom */
+  padding: 16px 20px;
+  border-top: 1px solid var(--gray);
+  background-color: rgba(0,0,0,0.2);
+  display: flex;
+  gap: 10px;
+}
+
+/* "Create New Team" Card Style */
+.create-team-card {
+  flex: 1 1 calc(33.333% - 16px);
+  border: 2px dashed var(--light-gray);
+  background-color: transparent;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  color: var(--light-gray);
+  cursor: pointer;
+  min-height: 350px; /* Give it a consistent height */
+  transition: all 0.2s ease-in-out;
+}
+
+.create-team-card:hover {
+  transform: translateY(-5px);
+  border-color: var(--accent);
+  background-color: var(--gray);
+  color: var(--white);
+}
+
+.create-team-card i {
+  font-size: 40px;
+  margin-bottom: 16px;
+}
+
+/* Refined Progress Bar Styles */
+
+.progress-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  margin-bottom: 6px;
+  color: var(--silver);
+}
+
+.progress-title {
+  font-weight: 500;
+}
+
+.progress {
+  height: 8px;
+  background-color: var(--dark-gray);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-bar {
+  width: calc(var(--p, 0) * 1%); /* Use CSS variable --p as percent fallback */
+  transition: width 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94); /* Smooth animation */
+  height: 100%;
+  display: flex;
+  background-color: var(--accent); /* Default color */
+}
+
+/* Progress Bar Color Variants */
+.progress-bar-danger {
+  background-color: #e74a3b; /* Red */
+}
+.progress-bar-warning {
+  background-color: #f6c23e; /* Yellow */
+}
+.progress-bar-success {
+  background-color: #28a745; /* Green */
+}
+
+/* Member chip styles used on team cards */
+.member-list {
+  margin-top: 8px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.member-chip {
+  display: inline-block;
+  padding: 4px 8px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.03);
+  border-radius: 12px;
+  font-size: 12px;
+  color: var(--accent);
+}
+
+/* --- Responsive Card Overrides --- */
+/* Tablet - 2 cards per row */
+@media (max-width: 992px) {
+  .team-card, .create-team-card {
+    flex-basis: calc(50% - 12px); /* 12px = 1/2 of 24px gap */
   }
-  .sidebar-logo-container {
-      padding: 1rem 1.5rem;
-      text-align: left;
+}
+
+/* Mobile - 1 card per row */
+@media (max-width: 768px) {
+  .team-card, .create-team-card {
+    flex-basis: 100%;
   }
-  .auth-logo {
-      height: 140px; /* 2x size */
-      width: auto;
-      margin-bottom: 1rem;
-  }
+}
+
+/* -------------------------------------------------
+   TABLE DESIGN
+--------------------------------------------------- */
+.table thead {
+  background-color: var(--black);
+}
+
+.table tbody tr {
+  background-color: var(--gray);
+  border-bottom: 1px solid var(--dark-gray);
+}
+
+.table tbody tr:hover {
+  background-color: var(--black);
+}
+
+/* -------------------------------------------------
+   BUTTONS
+--------------------------------------------------- */
+.btn-accent {
+  background-color: var(--accent);
+  border: none;
+  color: var(--black);
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-weight: 600;
+}
+
+.btn-accent:hover {
+  opacity: 0.85;
+}
+
+.btn-action {
+  padding: 5px 10px;
+  font-size: 14px;
+  border-radius: 5px;
+  margin-right: 5px;
+  color: var(--silver);
+  border: 1px solid var(--gray);
+}
+
+.btn-action:hover {
+  background-color: var(--gray);
+  color: var(--white);
+}
+/* -------------------------------------------------
+   INPUTS + FORMS
+--------------------------------------------------- */
+input, select, textarea {
+  background-color: var(--gray);
+  border: 1px solid var(--silver);
+  color: var(--white);
+  border-radius: 6px;
+  padding: 9px 12px;
+  width: 100%;
+  outline: none;
+}
+
+input:focus, select:focus, textarea:focus {
+  border-color: var(--accent);
+}
+
+/* -------------------------------------------------
+   SKELETON SHIMMER LOADING
+--------------------------------------------------- */
+.skeleton {
+  background: linear-gradient(90deg, #D9D9D9 25%, #E6E6E6 50%, #D9D9D9 75%);
+  background-size: 200% 100%;
+  border-radius: 6px;
+  animation: shimmer 1.4s infinite ease-in-out;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Predefined skeleton shapes */
+.skeleton-text { height: 14px; width: 100%; margin-bottom: 8px; }
+.skeleton-title { height: 22px; width: 60%; margin-bottom: 12px; }
+.skeleton-avatar { width: 40px; height: 40px; border-radius: 50%; }
+.skeleton-card { height: 160px; width: 100%; border-radius: 10px; }
+
+/* Loading visibility control */
+.loading .hide-when-loading { display: none; }
+.loading .show-when-loading { display: block; }
+
+/* Smooth fade reveal for content */
+.hide-when-loading {
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+:not(.loading) .hide-when-loading {
+  opacity: 1;
+}
+
 </style>

@@ -1,0 +1,60 @@
+<div class="team-card">
+    <a href="/guide/teams/<%= team._id %>" class="team-card-link">
+        <div class="team-card-header">
+            <div class="team-info">
+                <h5 class="team-name"><%= team.name %></h5>
+                <p class="project-title"><%= team.projectTitle %></p>
+                <p class="project-domain small text-muted">
+                    <i class="fas fa-layer-group me-1"></i>
+                    <%= team.domainName || 'No Domain' %>
+                </p>
+            </div>
+        </div>
+
+    <!-- ✅ Team Card Body Starts -->
+    <div class="team-card-body">
+
+        <% if (team.isUnscheduled) { %>
+            <p class="team-description">No active sprint for this team.</p>
+        <% } else { %>
+            <p class="team-description">Active Sprint<br><strong><%= team.activeSprintName %></strong></p>
+        <% } %>
+
+        <!-- ✅ Overall Project Progress -->
+        <div class="progress-section">
+            <h6>Overall Project Completion</h6>
+
+            <% 
+                const completedSP = team.overallCompletedPoints || 0;
+                const totalSP = team.overallTotalPoints || 0;
+                const completionPercent = totalSP > 0 ? (completedSP / totalSP) * 100 : 0;
+            %>
+
+            <div class="progress-bar-container">
+                <div class="progress-bar" style="width: <%= completionPercent %>%;"></div>
+            </div>
+
+            <span class="progress-text"><%= completedSP %> / <%= totalSP %> SP</span>
+        </div>
+
+        <!-- ✅ Members -->
+        <div class="team-members">
+            <h6>Members</h6>
+            <div class="member-list">
+                <% if (team.students && team.students.length > 0) { %>
+                    <% team.students.forEach(s => { %>
+                        <span class="member-chip"><%= s.name %></span>
+                    <% }) %>
+                <% } else { %>
+                    <p>No members assigned</p>
+                <% } %>
+            </div>
+        </div>
+
+    </div> <!-- ✅ Correct closing of team-card-body -->
+
+    <div class="team-card-footer">
+        <span class="btn btn-primary">View Team</span>
+    </div>
+    </a>
+</div>

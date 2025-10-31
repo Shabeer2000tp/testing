@@ -232,7 +232,7 @@ exports.getDashboard = async (req, res) => {
         const startOfToday = new Date(); startOfToday.setHours(0, 0, 0, 0);
         const endOfToday = new Date(); endOfToday.setHours(23, 59, 59, 999);
 
-        const team = await Team.findOne({ students: studentId });
+        const team = await Team.findOne({ students: studentId }).populate('guide', 'name').populate('students', 'name studentIdNumber');
         const sprintSetting = await Setting.findOne({ key: 'sprintCreation' });
 
         let activeSprint;
@@ -284,6 +284,12 @@ exports.getDashboard = async (req, res) => {
             const allCompletedTasks = await Task.find({ team: team._id, status: 'Done' });
             overallCompletedPoints = allCompletedTasks.reduce((sum, task) => sum + (task.storyPoints || 0), 0);
 
+            // --- FIX: Add missing properties to team object ---
+            const proposal = await Proposal.findOne({ team: team._id, status: 'Approved' }).populate('domain');
+            team.domainName = proposal && proposal.domain ? proposal.domain.name : 'N/A';
+            team.overallCompletedPoints = overallCompletedPoints;
+            team.overallTotalPoints = overallTotalPoints;
+
             if (sprintSetting && sprintSetting.value === 'team') {
                 const teamSprints = await Sprint.find({ team: team._id });
                 teamTotalPlannedPoints = teamSprints.reduce((sum, sprint) => sum + (sprint.capacity || 0), 0);
@@ -293,6 +299,15 @@ exports.getDashboard = async (req, res) => {
 
             if (activeSprint) {
                 const allTasks = await Task.find({ team: team._id, sprint: activeSprint._id }).populate('assignedTo', 'name');
+
+                // --- FIX: Add missing properties for progress bars ---
+                team.sprintCapacity = activeSprint.capacity;
+                team.completedStoryPoints = allTasks.filter(task => task.status === 'Done').reduce((sum, task) => sum + (task.storyPoints || 0), 0);
+                team.activeSprintName = activeSprint.name;
+                // --- FIX: Add missing properties for progress bars ---
+                team.sprintCapacity = activeSprint.capacity;
+                team.completedStoryPoints = allTasks.filter(task => task.status === 'Done').reduce((sum, task) => sum + (task.storyPoints || 0), 0);
+                team.activeSprintName = activeSprint.name;
                 
                 // Group tasks that were assigned to all members
                 const groupedTasks = [];
@@ -886,7 +901,8 @@ exports.getSprintPlanningPage = async (req, res) => {
             user: req.session.user,
             backlogItems, 
             sprintTasks, 
-            activeSprint 
+            activeSprint,
+            sprintSetting: sprintSetting || { value: 'global' }
         });
     } catch (error) {
         console.error(error);

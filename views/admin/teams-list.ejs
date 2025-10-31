@@ -32,64 +32,83 @@
             <div class="team-card">
                 <a href="/admin/teams/<%= team._id %>" class="team-card-link">
                     <div class="team-card-body">
-                        <!-- Main Info -->
+
+                        <!-- MAIN TEAM INFO -->
                         <div class="team-card-main-info">
                             <h5 class="team-name mb-0"><%= team.name %></h5>
+
+                            <!-- ✅ Project Title -->
+                            <p class="project-detail small text-light mb-1">
+                                <strong>Project:</strong> <%= team.projectTitle %>
+                            </p>
+
+                            <!-- ✅ Domain -->
+                            <p class="project-detail small text-muted mb-2">
+                                <i class="fas fa-layer-group me-1"></i> <%= team.domainName || 'No Domain Assigned' %>
+                            </p>
+
+                            <!-- Guide -->
                             <div class="team-guide">
-                                <p class="mb-0 small"><i class="fas fa-user-tie me-2"></i><%= team.guide ? team.guide.name : 'N/A' %></p>
+                                <p class="mb-0 small">
+                                    <i class="fas fa-user-tie me-2"></i>
+                                    <%= team.guide ? team.guide.name : 'N/A' %>
+                                </p>
                             </div>
                         </div>
 
-                        <!-- Sprint Progress -->
+                        <!-- SPRINT PROGRESS -->
                         <div class="progress-section">
-                        <% if (team.sprintCapacity > 0) { %>
+                            <% if (team.sprintCapacity > 0) { %>
                                 <div class="progress-header">
-                                    <div>
-                                        <span class="progress-title">Active Sprint</span>
-                                        <div class="text-muted small"><%= team.activeSprintName %></div>
-                                    </div>
+                                    <span class="progress-title">Active Sprint</span>
+                                    <div class="text-muted small"><%= team.activeSprintName %></div>
                                 </div>
                                 <div class="progress-bar-wrapper">
                                     <% const sprintPercentage = (team.completedStoryPoints / team.sprintCapacity) * 100; %>
                                     <div class="progress-bar-inner sprint-progress" style="width: <%= sprintPercentage.toFixed(2) %>%;"></div>
                                 </div>
-                                <div class="progress-value small text-end"><%= team.completedStoryPoints %> / <%= team.sprintCapacity %> SP</div>
-                        <% } else { %>
-                            <div class="no-sprint-message">
-                                No active sprint for this team.
-                            </div>
-                        <% } %>
+                                <div class="progress-value small text-end">
+                                    <%= team.completedStoryPoints %> / <%= team.sprintCapacity %> SP
+                                </div>
+                            <% } else { %>
+                                <div class="no-sprint-message small text-muted">
+                                    No active sprint for this team.
+                                </div>
+                            <% } %>
                         </div>
 
-                        <!-- Overall Progress -->
+                        <!-- OVERALL PROGRESS -->
                         <div class="progress-section">
-                        <% if (team.overallTotalPoints > 0) { %>
-                                <div class="progress-header">
-                                    <span class="progress-title">Overall Project Completion</span>
-                                </div>
+                            <% if (team.overallTotalPoints > 0) { %>
+                                <span class="progress-title">Overall Project Completion</span>
                                 <div class="progress-bar-wrapper">
                                     <% const overallPercentage = (team.overallCompletedPoints / team.overallTotalPoints) * 100; %>
                                     <div class="progress-bar-inner overall-progress" style="width: <%= overallPercentage.toFixed(2) %>%;"></div>
                                 </div>
-                                <div class="progress-value small text-end"><%= team.overallCompletedPoints %> / <%= team.overallTotalPoints %> SP</div>
-                        <% } %>
-                        </div>
-
-                        <!-- Avatars -->
-                        <div class="team-members-avatars">
-                            <% team.students.slice(0, 5).forEach(student => { %>
-                                <div class="avatar" title="<%= student.name %>">
-                                    <%= student.name.split(' ').map(n => n[0]).join('').substring(0,2) %>
-                                </div>
-                            <% }); %>
-                            <% if (team.students.length > 5) { %>
-                                <div class="avatar avatar-more" title="<%= team.students.length - 5 %> more members">
-                                    +<%= team.students.length - 5 %>
+                                <div class="progress-value small text-end">
+                                    <%= team.overallCompletedPoints %> / <%= team.overallTotalPoints %> SP
                                 </div>
                             <% } %>
                         </div>
+
+                        <!-- MEMBERS -->
+                        <div class="team-members mt-3">
+                            <h6 class="members-title small text-muted">Members</h6>
+                            <div class="member-list">
+                                <% if (team.students && team.students.length > 0) { %>
+                                    <% team.students.forEach(student => { %>
+                                        <span class="member-chip"><%= student.name %></span>
+                                    <% }) %>
+                                <% } else { %>
+                                    <p class="small text-muted mb-0">No members assigned</p>
+                                <% } %>
+                            </div>
+                        </div>
+
                     </div>
                 </a>
+
+                <!-- ACTION BUTTONS -->
                 <div class="card-actions">
                     <a href="/admin/teams/<%= team._id %>/edit" class="btn btn-action btn-edit">
                         <i class="fas fa-edit me-1"></i> Edit
@@ -103,6 +122,7 @@
                         </button>
                     </form>
                 </div>
+
             </div>
         <% }); %>
     </div>

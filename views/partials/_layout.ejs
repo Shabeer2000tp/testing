@@ -9,12 +9,14 @@
     <link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="/css/team-card.css">
+
     <%- include('../partials/_styles.ejs') %>
 </head>
 <body class="app-body">
     <%- include('../partials/_sidebar.ejs') %>
 
-    <div class="main-content">
+    <div class="main-content container-fluid">
         <!-- Toast container for notifications -->
         <div aria-live="polite" aria-atomic="true" class="position-relative">
             <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1100">
@@ -150,5 +152,16 @@
         });
     </script>
     <% } %>
+    <script>
+        // Fill progress bars that expose a data-progress attribute
+        document.addEventListener('DOMContentLoaded', function () {
+            document.querySelectorAll('.progress-bar[data-progress]').forEach(el => {
+                const percent = Number(el.getAttribute('data-progress')) || 0;
+                // apply width to animate from CSS (progress bars start at width:0)
+                el.style.width = percent + '%';
+                el.setAttribute('aria-valuenow', percent);
+            });
+        });
+    </script>
 </body>
 </html>

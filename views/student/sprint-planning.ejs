@@ -1,7 +1,7 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
         <h1 class="welcome-header h3 mb-0">Sprint Planning</h1>
-        <p class="text-muted">Plan your work for the active sprint.</p>
+        <p>Plan your work for the active sprint.</p>
     </div>
 </div>
 
@@ -9,7 +9,7 @@
     <div class="card text-center">
         <div class="card-body p-5">
             <i class="fas fa-pause-circle fa-3x text-muted mb-3"></i>
-            <h5 class="text-muted">No Active Sprint</h5>
+            <h5 class="text-white">No Active Sprint</h5>
             <p>There is no active sprint to plan for. Please create a new sprint or wait for one to become active.</p>
             <% if(sprintSetting && sprintSetting.value === 'team') { %>
                 <a href="/student/sprints" class="btn btn-primary mt-2">Manage Sprints</a>
@@ -21,7 +21,7 @@
     <div class="card mb-4">
         <div class="card-body">
             <h5 class="card-title">Active Sprint: <%= activeSprint.name %></h5>
-            <h6 class="card-subtitle mb-2 text-muted">
+            <h6 class="card-subtitle mb-2">
                 <%= new Date(activeSprint.startDate).toLocaleDateString() %> - <%= new Date(activeSprint.endDate).toLocaleDateString() %>
             </h6>
             <p class="card-text"><strong>Goal:</strong> <%= activeSprint.goal %></p>
@@ -55,7 +55,7 @@
                             </div>
                         <% }); %>
                     <% } else { %>
-                        <p class="text-center text-muted p-3">The product backlog is empty.</p>
+                        <p class="text-center p-3">The product backlog is empty.</p>
                     <% } %>
                 </div>
             </div>
@@ -73,7 +73,7 @@
                     <div class="sprint-capacity-bar">
                         <div class="progress-bar-inner sprint-progress" style="width: <%= percentage.toFixed(2) %>%;" title="Sprint Load"></div>
                     </div>
-                    <div class="text-center small text-muted mb-3">
+                    <div class="text-center small mb-3">
                         <strong><%= currentLoad %> / <%= capacity %></strong> Story Points Planned
                     </div>
 
@@ -84,13 +84,13 @@
                                     <p class="mb-0"><%= task.description %></p>
                                     <span class="badge bg-secondary rounded-pill"><%= task.storyPoints %> SP</span>
                                 </div>
-                                <div class="mt-2 small text-muted">
+                                <div class="mt-2 small">
                                     Assigned to: <%= task.assignedTo ? task.assignedTo.name : (task.assignedToAll ? 'All Members' : 'Unassigned') %>
                                 </div>
                             </div>
                         <% }); %>
                     <% } else { %>
-                        <p class="text-center text-muted p-3">Pull items from the product backlog to plan your sprint.</p>
+                        <p class="text-center p-3">Pull items from the product backlog to plan your sprint.</p>
                     <% } %>
                 </div>
             </div>
