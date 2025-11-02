@@ -6,8 +6,8 @@ const { uploadAttachment } = require('../config/multer-config');
 
 // Dashboard & User Approval
 router.get('/dashboard', isAdmin, adminController.getDashboard);
-router.post('/approve/:id', isAdmin, adminController.approveUser);
-router.post('/reject/:id', isAdmin, adminController.rejectUser);
+router.post('/users/:id/approve', isAdmin, adminController.approveUser);
+router.post('/users/:id/reject', isAdmin, adminController.rejectUser);
 
 // Team Management
 router.get('/teams/new', isAdmin, adminController.getCreateTeamPage);
