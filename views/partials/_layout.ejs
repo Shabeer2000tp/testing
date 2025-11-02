@@ -12,8 +12,19 @@
     <link rel="stylesheet" href="/css/team-card.css">
 
     <%- include('../partials/_styles.ejs') %>
+
+    <!-- Loading Screen and NProgress -->
+    <link rel="stylesheet" href="https://unpkg.com/nprogress@0.2.0/nprogress.css">
+    <link rel="stylesheet" href="/css/loader.css">
+    <script src="https://unpkg.com/nprogress@0.2.0/nprogress.js"></script>
 </head>
 <body class="app-body">
+    <!-- Loading Screen HTML -->
+    <div id="loading-screen">
+        <div class="spinner"></div>
+        <p>Loading, please wait...</p>
+    </div>
+
     <%- include('../partials/_sidebar.ejs') %>
 
     <div class="main-content container-fluid">
@@ -163,5 +174,8 @@
             });
         });
     </script>
+
+    <!-- Loading Screen Script -->
+    <script src="/js/loader.js"></script>
 </body>
 </html>
