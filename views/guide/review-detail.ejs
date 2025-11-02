@@ -1,10 +1,10 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
         <h1 class="welcome-header h3 mb-0">Review for: <%= review.team.name %></h1>
-        <p class="text-muted">Scheduled for: <%= new Date(review.reviewDate).toLocaleString() %></p>
+        <p class="text-muted">Scheduled for: <%= new Date(review.reviewDate).toLocaleDateString() %></p>
     </div>
     <div>
-        <a href="/guide/reviews" class="btn btn-outline-secondary">
+        <a href="/guide/reviews" class="btn btn-outline-secondary btn-sm">
             <i class="fas fa-arrow-left me-1"></i> Back to My Reviews
         </a>
     </div>
@@ -76,25 +76,72 @@
 
     <!-- Right Column: Team & Panel Info -->
     <div class="col-lg-5">
-        <div class="card mb-4">
-            <div class="card-header"><i class="fas fa-users me-2"></i>Team Members</div>
-            <div class="list-group list-group-flush">
-                <% review.team.students.forEach(student => { %>
-                    <div class="list-group-item"><%= student.name %></div>
-                <% }); %>
-            </div>
-        </div>
         <div class="card">
-            <div class="card-header"><i class="fas fa-user-shield me-2"></i>Review Panel</div>
-            <div class="list-group list-group-flush">
-                <% review.panel.forEach(member => { %>
-                    <div class="list-group-item <%= member._id.equals(user.profileId) ? 'active' : '' %>">
-                        <%= member.name %>
-                        <% if (member._id.equals(user.profileId)) { %>
-                            <span class="badge bg-light text-dark float-end">You</span>
-                        <% } %>
+            <div class="card-header">
+                <ul class="nav nav-tabs card-header-tabs" id="reviewDetailTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="info-tab" data-bs-toggle="tab" data-bs-target="#info" type="button" role="tab">Info</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="deliverables-tab" data-bs-toggle="tab" data-bs-target="#deliverables" type="button" role="tab">Deliverables</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="backlog-tab" data-bs-toggle="tab" data-bs-target="#backlog" type="button" role="tab">Backlog</button>
+                    </li>
+                </ul>
+            </div>
+            <div class="card-body p-0">
+                <div class="tab-content" id="reviewDetailTabsContent">
+                    <!-- Info Tab -->
+                    <div class="tab-pane fade show active" id="info" role="tabpanel">
+                        <div class="list-group list-group-flush">
+                            <div class="list-group-item list-group-item-secondary"><i class="fas fa-users me-2"></i><strong>Team Members</strong></div>
+                            <% review.team.students.forEach(student => { %>
+                                <div class="list-group-item"><%= student.name %></div>
+                            <% }); %>
+                            <div class="list-group-item list-group-item-secondary"><i class="fas fa-user-shield me-2"></i><strong>Review Panel</strong></div>
+                            <% review.panel.forEach(member => { %>
+                                <div class="list-group-item d-flex justify-content-between align-items-center <%= member._id.equals(user.profileId) ? 'active' : '' %>">
+                                    <%= member.name %>
+                                    <% if (member._id.equals(user.profileId)) { %><span class="badge bg-light text-dark">You</span><% } %>
+                                </div>
+                            <% }); %>
+                        </div>
                     </div>
-                <% }); %>
+                    <!-- Deliverables Tab -->
+                    <div class="tab-pane fade" id="deliverables" role="tabpanel" style="max-height: 450px; overflow-y: auto;">
+                        <div class="list-group list-group-flush">
+                            <% if (deliverables && deliverables.length > 0) { %>
+                                <% deliverables.forEach(file => { %>
+                                    <a href="/deliverables/download/<%= file._id %>" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <i class="fas fa-file-alt me-2"></i><%= file.fileName %>
+                                            <small class="d-block text-muted">Uploaded by: <%= file.uploadedBy.name %></small>
+                                        </div>
+                                        <i class="fas fa-download"></i>
+                                    </a>
+                                <% }); %>
+                            <% } else { %>
+                                <div class="list-group-item text-center text-muted p-4">No deliverables uploaded.</div>
+                            <% } %>
+                        </div>
+                    </div>
+                    <!-- Backlog Tab -->
+                    <div class="tab-pane fade" id="backlog" role="tabpanel" style="max-height: 450px; overflow-y: auto;">
+                        <div class="list-group list-group-flush">
+                            <% if (backlogItems && backlogItems.length > 0) { %>
+                                <% backlogItems.forEach(item => { %>
+                                    <div class="list-group-item">
+                                        <p class="mb-1"><strong><%= item.title %></strong></p>
+                                        <small class="text-muted"><%= item.description %></small>
+                                    </div>
+                                <% }); %>
+                            <% } else { %>
+                                <div class="list-group-item text-center text-muted p-4">The team backlog is empty.</div>
+                            <% } %>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

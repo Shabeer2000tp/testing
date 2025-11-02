@@ -4,18 +4,28 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Sprint Sync</title>
-  <link href="https://fonts.googleapis.com/css2?family=Helvetica:wght@400;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     * {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
-      font-family: 'Helvetica', sans-serif;
+      font-family: 'Inter', sans-serif;
+    }
+
+    :root {
+      --black: #000000;
+      --dark-gray: #1A1A1A;
+      --gray: #3A3A3A;
+      --silver: #E6E6E6;
+      --accent: #6C63FF;
+      --accent-light: #A29BFE;
+      --white: #FFFFFF;
     }
 
     body {
-      background-color: #f9f9f9;
-      color: #111;
+      background-color: var(--dark-gray);
+      color: var(--white);
       overflow-x: hidden;
       scroll-behavior: smooth;
     }
@@ -26,44 +36,68 @@
       padding: 4rem 2rem;
     }
 
+    /* Make header sticky */
     header {
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      background-color: var(--black);
+      padding: 0.5rem 0;
+      border-bottom: 1px solid transparent; /* Start with a transparent border */
+      transition: border-color 0.3s ease, box-shadow 0.3s ease; /* Smooth transition */
+    }
+
+    header.scrolled {
+        border-bottom-color: var(--gray);
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2); /* Add shadow on scroll */
+    }
+
+    .header-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 2rem;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 4rem;
     }
 
+
     .logo-img {
-      height: 95px;
+      height: 70px;
       width: auto;
     }
 
     nav a {
       margin: 0 1rem;
       text-decoration: none;
-      color: #111;
+      color: var(--silver);
       font-weight: 500;
       font-size: 0.95rem;
-      transition: opacity 0.3s ease;
+      transition: color 0.3s ease;
     }
 
     nav a:hover {
-      opacity: 0.6;
+      color: var(--white);
+    }
+
+    nav a.active {
+      color: var(--accent);
+      font-weight: 600;
     }
 
     .cta-btn {
-      background-color: #111;
-      color: #fff;
+      background-color: var(--accent-light);
+      color: var(--white);
       padding: 0.7rem 1.5rem;
       border-radius: 4px;
       text-decoration: none;
       font-weight: 600;
-      transition: 0.3s ease;
+      transition: background-color 0.2s ease-in-out;
       letter-spacing: 0.3px;
     }
 
     .cta-btn:hover {
-      background-color: #444;
+      background-color: var(--accent);
     }
 
     .hero {
@@ -75,13 +109,13 @@
       font-size: 2.4rem;
       font-weight: 700;
       margin-bottom: 1.2rem;
-      color: #111;
+      color: var(--white);
       letter-spacing: -0.5px;
     }
 
     .hero p {
       font-size: 1.05rem;
-      color: #444;
+      color: var(--silver);
       margin-bottom: 3rem;
       max-width: 720px;
       margin-left: auto;
@@ -98,7 +132,7 @@
       font-size: 1.8rem;
       font-weight: 700;
       margin-bottom: 3rem;
-      color: #111;
+      color: var(--white);
       letter-spacing: -0.4px;
     }
 
@@ -112,6 +146,9 @@
     .card {
       width: 280px;
       text-align: left;
+      background-color: var(--gray);
+      padding: 24px;
+      border-radius: 10px;
     }
 
     .card h3 {
@@ -119,12 +156,12 @@
       font-weight: 600;
       margin-top: 1.5rem;
       margin-bottom: 0.75rem;
-      color: #111;
+      color: var(--white);
     }
 
     .card p {
       font-size: 0.95rem;
-      color: #555;
+      color: var(--silver);
       line-height: 1.6;
     }
 
@@ -137,26 +174,52 @@
       text-align: center;
       padding: 4rem 0 2rem;
       font-weight: 500;
-      color: #777;
+      color: var(--silver);
       font-size: 0.9rem;
+    }
+
+    /* Back to Top Button */
+    .back-to-top-btn {
+      position: fixed;
+      bottom: 25px;
+      right: 25px;
+      background-color: var(--accent);
+      color: var(--white);
+      width: 45px;
+      height: 45px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      text-decoration: none;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.3s ease, visibility 0.3s ease, background-color 0.3s ease;
+      z-index: 1000;
+    }
+
+    .back-to-top-btn.visible {
+      opacity: 1;
+      visibility: visible;
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <header>
+  <header>
+    <div class="header-container">
       <a href="#" class="logo">
-        <img src="/Sslogo Black-01.svg" alt="SprintSync Logo" class="logo-img">
+        <img src="/Sslogo White-02.svg" alt="SprintSync Logo" class="logo-img">
       </a>
       <nav>
         <a href="#">Home</a>
         <a href="#features">Features</a>
         <a href="#about">About</a>
-        <a href="#contact">Contact</a>
         <a href="/login" class="cta-btn">Login</a>
       </nav>
-    </header>
-
+    </div>
+  </header>
+  <div class="container content-to-fade">
     <section class="hero">
       <h1>The way we work is not an accident.</h1>
       <p>At SprintSync, we believe in a structured yet flexible approach to Agile project management that keeps academic and professional teams aligned, focused, and successful.</p>
@@ -245,5 +308,69 @@
       &copy; 2025 SprintSync. All rights reserved.
     </footer>
   </div>
+
+  <a href="#" class="back-to-top-btn" title="Back to Top">&#8679;</a>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const header = document.querySelector('header');
+      const backToTopBtn = document.querySelector('.back-to-top-btn');
+      const content = document.querySelector('.content-to-fade');
+
+      // Fade in content on initial load
+      // A small delay ensures styles are applied before transition starts
+      setTimeout(() => {
+        if(content) content.classList.add('visible');
+      }, 10);
+      
+      window.addEventListener('scroll', function() {
+        // Header scroll logic
+        if (window.scrollY > 10) { // Add class after scrolling 10px
+          header.classList.add('scrolled');
+        } else {
+          header.classList.remove('scrolled');
+        }
+
+        // Back to top button visibility
+        if (window.scrollY > 300) { // Show button after 300px
+          backToTopBtn.classList.add('visible');
+        } else {
+          backToTopBtn.classList.remove('visible');
+        }
+      });
+
+      // Scroll-spy for navigation links
+      const sections = document.querySelectorAll('section[id]');
+      const navLinks = document.querySelectorAll('nav a[href^="#"]');
+      const homeLink = document.querySelector('nav a[href="#"]');
+
+      function changeNavOnScroll() {
+        let currentSectionId = '';
+        const headerHeight = header.offsetHeight + 50; // Offset to trigger highlight sooner
+
+        sections.forEach(section => {
+          const sectionTop = section.offsetTop;
+          if (window.scrollY >= sectionTop - headerHeight) {
+            currentSectionId = section.getAttribute('id');
+          }
+        });
+
+        // Special case for the last section when scrolled to the bottom
+        const isAtBottom = window.innerHeight + window.scrollY >= document.body.offsetHeight - 2; // -2 for buffer
+        if (isAtBottom) {
+            currentSectionId = sections[sections.length - 1].getAttribute('id');
+        }
+
+        navLinks.forEach(link => {
+          link.classList.remove('active');
+          if (link.getAttribute('href') === `#${currentSectionId}`) {
+            link.classList.add('active');
+          }
+        });
+      }
+
+      window.addEventListener('scroll', changeNavOnScroll);
+    });
+  </script>
 </body>
 </html>

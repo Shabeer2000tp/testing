@@ -32,5 +32,5 @@ exports.getTaskStatusInfo = (task, sprint) => {
     }
 
     // 5. Otherwise, the task is 'On Track'
-    return { text: 'On Track', color: '#4e73df' }; // Blue
+    return { text: 'On Track', color: '#6C63FF' }; // Purple
 };

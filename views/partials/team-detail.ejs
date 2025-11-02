@@ -1,19 +1,29 @@
+<!-- Page Header with Actions -->
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
         <h1 class="welcome-header h3 mb-0"><%= team.name %></h1>
-        <p class="text-muted">Guided by: <%= team.guide.name %></p>
+        <p class="text-muted mb-0">Project: <%= team.projectTitle || 'Not yet defined' %> (<%= team.domainName %>)</p>
     </div>
-    <div>
-        <a href="/<%= user.role %>/teams" class="btn btn-outline-secondary">
-            <i class="fas fa-arrow-left me-1"></i> Back to Teams
-        </a>
+    <div class="d-flex gap-2">
+        <% if (user.role === 'admin') { %>
+            <a href="/admin/teams/<%= team._id %>/edit" class="btn btn-outline-secondary"><i class="fas fa-edit me-2"></i>Edit Team</a>
+            <a href="/admin/teams/<%= team._id %>/backlog" class="btn btn-outline-secondary"><i class="fas fa-list-ul me-2"></i>View Backlog</a>
+            <a href="/admin/teams/<%= team._id %>/report" class="btn btn-primary"><i class="fas fa-file-alt me-2"></i>Generate Report</a>
+        <% } else if (user.role === 'guide') { %>
+            <a href="/guide/teams/<%= team._id %>/backlog" class="btn btn-outline-secondary"><i class="fas fa-list-ul me-2"></i>View Backlog</a>
+            <a href="/guide/dashboard" class="btn btn-outline-secondary"><i class="fas fa-arrow-left me-1"></i> Back to Dashboard</a>
+        <% } else { %>
+            <a href="/student/dashboard" class="btn btn-outline-secondary"><i class="fas fa-arrow-left me-1"></i> Back to Dashboard</a>
+        <% } %>
     </div>
 </div>
 
+<%- include('../partials/_messages.ejs') %>
+
 <!-- Stat Cards -->
 <div class="row">
-    <div class="col-xl-4 col-md-6 mb-4">
-        <div class="card stat-card border-primary">
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stat-card" style="border-left-color: var(--accent);">
             <div class="card-body">
                 <div class="stat-card-title">Active Sprint</div>
                 <div class="stat-card-value fs-5"><%= activeSprint ? activeSprint.name : 'None' %></div>
@@ -21,8 +31,8 @@
             </div>
         </div>
     </div>
-    <div class="col-xl-4 col-md-6 mb-4">
-        <div class="card stat-card border-success">
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stat-card" style="border-left-color: #28a745;">
             <div class="card-body">
                 <div class="stat-card-title">Sprint Progress</div>
                 <div class="stat-card-value"><%= activeSprint ? `${team.completedStoryPoints} / ${team.sprintCapacity}` : 'N/A' %> <span class="fs-6 text-muted">SP</span></div>
@@ -30,8 +40,17 @@
             </div>
         </div>
     </div>
-    <div class="col-xl-4 col-md-6 mb-4">
-        <div class="card stat-card border-info">
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stat-card" style="border-left-color: #f6c23e;">
+            <div class="card-body">
+                <div class="stat-card-title">Overall Progress</div>
+                <div class="stat-card-value"><%= team.overallCompletedPoints %> / <%= team.overallTotalPoints || 'N/A' %> <span class="fs-6 text-muted">SP</span></div>
+                <i class="fas fa-tasks stat-card-icon"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stat-card" style="border-left-color: #1cc88a;">
             <div class="card-body">
                 <div class="stat-card-title">Team Members</div>
                 <div class="stat-card-value"><%= team.students.length %></div>
@@ -41,160 +60,153 @@
     </div>
 </div>
 
+<% if (activeSprint) { %>
 <div class="row">
-    <!-- Left Column: Burndown Chart & Team Members -->
+
+    <!-- Left Column -->
     <div class="col-lg-7">
         <div class="card mb-4">
             <div class="card-header">
-                <i class="fas fa-chart-line me-2"></i>Sprint Burndown Chart
+                <i class="fas fa-chart-line me-2"></i> Sprint Burndown Chart
             </div>
             <div class="card-body">
-                <% if (activeSprint && team.burndownChartData) { %>
-                    <div class="burndown-chart-container">
+                <% if (team.burndownChartData) { %>
+                    <div style="height: 300px;">
                         <canvas id="burndownChart"></canvas>
                     </div>
                 <% } else { %>
-                    <p class="text-center text-muted p-4">No active sprint to display burndown chart.</p>
+                    <p class="text-center text-muted p-4">Not enough data to display burndown chart.</p>
                 <% } %>
             </div>
         </div>
 
-        <div class="card">
-            <div class="card-header">
-                <i class="fas fa-user-friends me-2"></i>Team Members
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header"><i class="fas fa-users me-2"></i> Team Members</div>
+                    <div class="list-group list-group-flush">
+                        <div class="list-group-item d-flex justify-content-between align-items-center"><strong><%= team.guide.name %></strong><span class="badge bg-primary">Guide</span></div>
+                        <% team.students.forEach(student => { %>
+                            <div class="list-group-item"><%= student.name %></div>
+                        <% }); %>
+                    </div>
+                </div>
             </div>
-            <div class="list-group list-group-flush">
-                <% team.students.forEach(student => { %>
-                    <div class="list-group-item"><%= student.name %></div>
-                <% }); %>
-            </div>
-        </div>
-    </div>
 
-    <!-- Right Column: Tabs for Tasks, Logs, Deliverables -->
-    <div class="col-lg-5">
-        <div class="card">
-            <div class="card-header">
-                <ul class="nav nav-tabs card-header-tabs" id="teamDetailTabs" role="tablist">
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link active" id="tasks-tab" data-bs-toggle="tab" data-bs-target="#tasks" type="button" role="tab">Tasks</button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="logs-tab" data-bs-toggle="tab" data-bs-target="#logs" type="button" role="tab">Daily Logs</button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="deliverables-tab" data-bs-toggle="tab" data-bs-target="#deliverables" type="button" role="tab">Deliverables</button>
-                    </li>
-                </ul>
-            </div>
-            <div class="card-body p-0">
-                <div class="tab-content" id="teamDetailTabsContent">
-                    <!-- Tasks Tab -->
-                    <div class="tab-pane fade show active" id="tasks" role="tabpanel">
-                        <div class="table-responsive">
-                            <table class="table table-hover mb-0">
-                                <thead>
-                                    <tr>
-                                        <th>Task</th>
-                                        <th>Status</th>
-                                        <th>Points</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <% if (activeSprint && team.tasks && team.tasks.length > 0) { %>
-                                        <% team.tasks.forEach(task => { %>
-                                            <tr>
-                                                <td><%= task.description %></td>
-                                                <td><span class="status-badge status-<%= task.realtimeStatus.badgeClass %>"><%= task.realtimeStatus.text %></span></td>
-                                                <td><span class="badge bg-secondary"><%= task.storyPoints %></span></td>
-                                            </tr>
-                                        <% }); %>
-                                    <% } else { %>
-                                        <tr><td colspan="3" class="text-center text-muted p-4">No tasks in the active sprint.</td></tr>
-                                    <% } %>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                    <!-- Daily Logs Tab -->
-                    <div class="tab-pane fade" id="logs" role="tabpanel">
-                        <div class="list-group list-group-flush">
-                            <% if (dailyLogs && dailyLogs.length > 0) { %>
-                                <% dailyLogs.forEach(log => { %>
-                                    <div class="list-group-item">
-                                        <div class="d-flex w-100 justify-content-between">
-                                            <h6 class="mb-1"><%= log.student.name %></h6>
-                                            <small><%= new Date(log.createdAt).toLocaleDateString() %></small>
-                                        </div>
-                                        <p class="mb-1"><%= log.logContent %></p>
-                                        <% if (log.isBlocked) { %>
-                                            <small class="text-danger"><strong>Blocked:</strong> <%= log.blockerDescription %></small>
-                                        <% } %>
-                                    </div>
-                                <% }); %>
-                            <% } else { %>
-                                <div class="text-center text-muted p-4">No daily logs for this sprint.</div>
-                            <% } %>
-                        </div>
-                    </div>
-                    <!-- Deliverables Tab -->
-                    <div class="tab-pane fade" id="deliverables" role="tabpanel">
-                        <div class="list-group list-group-flush">
-                            <% if (deliverables && deliverables.length > 0) { %>
-                                <% deliverables.forEach(file => { %>
-                                    <a href="/<%= file.filePath %>" download class="list-group-item list-group-item-action">
-                                        <div class="d-flex w-100 justify-content-between">
-                                            <h6 class="mb-1"><i class="fas fa-file-alt me-2"></i><%= file.fileName %></h6>
-                                            <small><%= new Date(file.createdAt).toLocaleDateString() %></small>
-                                        </div>
-                                        <small class="text-muted">Uploaded by: <%= file.uploadedBy.name %></small>
-                                    </a>
-                                <% }); %>
-                            <% } else { %>
-                                <div class="text-center text-muted p-4">No deliverables uploaded for this team.</div>
-                            <% } %>
-                        </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header"><i class="fas fa-calendar-check me-2"></i>Upcoming Reviews</div>
+                    <div class="list-group list-group-flush">
+                        <% if (upcomingReviews && upcomingReviews.length > 0) { %>
+                            <% upcomingReviews.forEach(review => { %>
+                                <div class="list-group-item"><strong><%= new Date(review.reviewDate).toLocaleDateString() %></strong></div>
+                            <% }); %>
+                        <% } else { %>
+                            <div class="list-group-item text-muted">No upcoming reviews scheduled.</div>
+                        <% } %>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+
+    <!-- Right Column -->
+    <div class="col-lg-5">
+        <div class="card">
+            <div class="card-header">
+                <ul class="nav nav-tabs card-header-tabs" id="teamDetailTabs" role="tablist">
+                    <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tasks">Tasks</button></li>
+                    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#logs">Daily Logs</button></li>
+                    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#deliverables">Deliverables</button></li>
+                </ul>
+            </div>
+
+            <div class="card-body p-0">
+                <div class="tab-content">
+
+                    <!-- Tasks -->
+                    <div class="tab-pane fade show active" id="tasks">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead><tr><th>Task</th><th>Assigned To</th><th>Status</th><th>Points</th></tr></thead>
+                                <tbody>
+                                <% if (team.tasks && team.tasks.length > 0) { %>
+                                    <% team.tasks.forEach(task => { %>
+                                        <tr>
+                                            <td><%= task.description %></td>
+                                            <td><%= task.assignedTo ? task.assignedTo.name : 'Unassigned' %></td>
+                                            <td><span class="status-badge <%= task.realtimeStatus.badgeClass %>"><%= task.realtimeStatus.text %></span></td>
+                                            <td><span class="badge bg-secondary"><%= task.storyPoints %></span></td>
+                                        </tr>
+                                    <% }) %>
+                                <% } else { %>
+                                    <tr><td colspan="4" class="text-center text-muted p-4">No tasks in this sprint.</td></tr>
+                                <% } %>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Logs -->
+                    <div class="tab-pane fade" id="logs" style="max-height:450px; overflow-y:auto;">
+                        <div class="list-group list-group-flush">
+                        <% if (dailyLogs && dailyLogs.length > 0) { %>
+                            <% dailyLogs.forEach(log => { %>
+                                <div class="list-group-item">
+                                    <p class="mb-1"><%= log.logContent %></p>
+                                    <small class="text-muted d-block"><%= log.student.name %> on <%= new Date(log.createdAt).toLocaleDateString() %></small>
+                                </div>
+                            <% }); %>
+                        <% } else { %>
+                            <div class="text-center text-muted p-4">No daily logs.</div>
+                        <% } %>
+                        </div>
+                    </div>
+
+                    <!-- Deliverables -->
+                    <div class="tab-pane fade" id="deliverables">
+                        <div class="list-group list-group-flush">
+                        <% if (deliverables && deliverables.length > 0) { %>
+                            <% deliverables.forEach(file => { %>
+                                <div class="list-group-item d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <a href="/deliverables/download/<%= file._id %>" class="fw-bold"><i class="fas fa-file-alt me-2"></i><%= file.fileName %></a>
+                                        <small class="d-block text-muted">Uploaded by: <%= file.uploadedBy.name %></small>
+                                    </div>
+                                    <a href="/deliverables/download/<%= file._id %>" class="btn btn-sm btn-outline-secondary"><i class="fas fa-download"></i></a>
+                                </div>
+                            <% }); %>
+                        <% } else { %>
+                            <div class="text-center text-muted p-4">No deliverables uploaded.</div>
+                        <% } %>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
 </div>
 
+<% } else { %>
+<div class="card text-center p-5"><h4>No Active Sprint</h4><p class="text-muted">This team does not have an active sprint.</p></div>
+<% } %>
+
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Burndown Chart script
-        <% if (activeSprint && team.burndownChartData) { %>
-            const ctx = document.getElementById('burndownChart');
-            if (ctx) {
-                new Chart(ctx, {
-                    type: 'line',
-                    data: {
-                        labels: <%- team.burndownChartData.labels %>,
-                        datasets: [{
-                            label: 'Remaining Work',
-                            data: <%- team.burndownChartData.actualData %>,
-                            borderColor: 'rgb(78, 115, 223)',
-                            backgroundColor: 'rgba(78, 115, 223, 0.1)',
-                            tension: 0.1,
-                            fill: true
-                        }, {
-                            label: 'Ideal Pace',
-                            data: <%- team.burndownChartData.idealData %>,
-                            borderColor: 'rgb(231, 74, 59)',
-                            borderDash: [5, 5],
-                            fill: false
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        scales: {
-                            y: { beginAtZero: true, title: { display: true, text: 'Story Points Remaining' } }
-                        }
-                    }
-                });
-            }
-        <% } %>
+document.addEventListener('DOMContentLoaded', function() {
+<% if (activeSprint && team.burndownChartData) { %>
+    new Chart(document.getElementById('burndownChart'), {
+        type: 'line',
+        data: {
+            labels: <%- team.burndownChartData.labels %>,
+            datasets: [
+                { label:'Remaining Work', data:<%- team.burndownChartData.actualData %>, borderColor:'#A29BFE', fill:true },
+                { label:'Ideal Pace', data:<%- team.burndownChartData.idealData %>, borderColor:'#ccc', borderDash:[5,5], fill:false }
+            ]
+        },
+        options:{ responsive:true, maintainAspectRatio:false }
     });
+<% } %>
+});
 </script>

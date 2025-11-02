@@ -1,6 +1,6 @@
-
-
+// ---------------------------------------------------
 // Import required packages
+// ---------------------------------------------------
 const express = require('express');
 const mongoose = require('mongoose');
 const session = require('express-session');
@@ -10,10 +10,15 @@ require('dotenv').config();
 const path = require('path');
 const expressLayouts = require('express-ejs-layouts');
 const http = require('http');
-const { Server } = require("socket.io");
-
-// Import Routes
+const { Server } = require('socket.io');
 const cron = require('node-cron');
+const helmet = require('helmet');
+const compression = require('compression');
+const morgan = require('morgan');
+
+// ---------------------------------------------------
+// Import Models & Routes
+// ---------------------------------------------------
 const Sprint = require('./models/Sprint');
 const Team = require('./models/Team');
 const Task = require('./models/Task');
@@ -26,71 +31,122 @@ const domainRoutes = require('./routes/domainRoutes');
 const deliverableRoutes = require('./routes/deliverableRoutes');
 const { loadUnreadNotifications } = require('./middleware/notificationMiddleware');
 
-// Initialize the Express app and HTTP server
+// ---------------------------------------------------
+// Initialize Express and HTTP Server
+// ---------------------------------------------------
 const app = express();
-const server = http.createServer(app); // Create server from Express app
-const io = new Server(server);         // Attach Socket.IO to the server
+const server = http.createServer(app);
+const io = new Server(server);
 
-// Database Connection
-mongoose.connect(process.env.MONGODB_URI)
-    .then(() => console.log('MongoDB connected successfully.'))
-    .catch((err) => console.error('MongoDB connection error:', err));
+// ---------------------------------------------------
+// Database Connection (Render or Local)
+// ---------------------------------------------------
+mongoose.connect(process.env.MONGODB_URI || process.env.DATABASE_URL, {
+  serverSelectionTimeoutMS: 5000,
+})
+  .then(() => console.log('✅ MongoDB connected successfully.'))
+  .catch((err) => console.error('❌ MongoDB connection error:', err));
 
-// View Engine & Static Files Setup
+if (!process.env.MONGODB_URI && !process.env.DATABASE_URL) {
+  console.warn('⚠️ Warning: No MongoDB connection string found in environment variables!');
+}
+
+// ---------------------------------------------------
+// Middleware Setup
+// ---------------------------------------------------
+app.use(helmet({ contentSecurityPolicy: false }));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use(expressLayouts);
 app.set('view engine', 'ejs');
-app.set('layout', 'partials/_layout'); // Set the default layout file
+app.set('layout', 'partials/_layout');
 app.use(express.static(path.join(__dirname, 'public')));
-app.use(express.urlencoded({ extended: true }));
 
-// --- CORRECTED SESSION MIDDLEWARE SETUP ---
-// 1. Define the session middleware as a constant
+// ---------------------------------------------------
+// Session Middleware
+// ---------------------------------------------------
 const sessionMiddleware = session({
-    secret: 'a_long_random_secret_key_for_your_project',
-    resave: false,
-    saveUninitialized: false,
-    store: MongoStore.create({
-        mongoUrl: process.env.MONGODB_URI
-    })
+  secret: process.env.SESSION_SECRET || 'fallback_secret_key',
+  resave: false,
+  saveUninitialized: false,
+  store: MongoStore.create({
+    mongoUrl: process.env.MONGODB_URI || process.env.DATABASE_URL,
+  }),
 });
 
-// 2. Use the constant for both Express and Socket.IO
 app.use(sessionMiddleware);
+
+// Allow Socket.IO to share session
 io.use((socket, next) => {
-    sessionMiddleware(socket.request, {}, next);
+  sessionMiddleware(socket.request, {}, next);
 });
-// --- END OF CORRECTION ---
 
+// ---------------------------------------------------
+// Flash Messages & Global Variables
+// ---------------------------------------------------
 app.use(flash());
-
-// Global Variables Middleware
 app.use((req, res, next) => {
-    res.locals.success_msg = req.flash('success_msg');
-    res.locals.error_msg = req.flash('error_msg');
-    res.locals.user = req.session.user || null; // Make user available in all templates
-    req.io = io; // Make io object available in all controllers
-    next();
+  res.locals.success_msg = req.flash('success_msg');
+  res.locals.error_msg = req.flash('error_msg');
+  res.locals.user = req.session.user || null;
+  req.io = io;
+  next();
 });
 
-// Middleware to load unread notifications (should come after user is set in locals)
 app.use(loadUnreadNotifications);
 
-// Real-time connection logic
+// ---------------------------------------------------
+// Socket.IO Logic
+// ---------------------------------------------------
 io.on('connection', (socket) => {
-    console.log('A user connected via WebSocket');
-    const user = socket.request.session.user;
+  console.log('✅ A user connected via WebSocket');
+  const user = socket.request.session.user;
 
-    // Check for user and the correct loginId property
-    if (user && user.loginId) {
-        socket.join(user.loginId.toString()); // User joins a 'room' named after their own ID
-        console.log(`User ${user.loginId} joined their notification room.`);
-    }
-    socket.on('disconnect', () => {
-        console.log('User disconnected');
-    });
+  if (user && user.loginId) {
+    socket.join(user.loginId.toString());
+    console.log(`User ${user.loginId} joined their notification room.`);
+  }
+
+  socket.on('disconnect', () => {
+    console.log('❌ User disconnected');
+  });
 });
 
-// --- ROUTES ---
+// ---------------------------------------------------
+// Performance and Logging Middlewares
+// ---------------------------------------------------
+app.use(compression());
+
+if (process.env.NODE_ENV === 'production') {
+  app.use(morgan('combined')); // For Render logs
+} else {
+  app.use(morgan('dev')); // For local logs
+}
+
+// ---------------------------------------------------
+// Health + Root Routes
+// ---------------------------------------------------
+app.get('/health', (req, res) => {
+  res.status(200).send('🔥 Sprint Sync server is healthy!');
+});
+
+// Landing page or redirect
+app.get('/', (req, res) => {
+  try {
+    // Option 1: Render a landing page (views/landing.ejs)
+    res.render('landing', { title: 'Welcome to Sprint Sync' });
+    
+    // Option 2 (replace above): redirect to login automatically
+    // res.redirect('/login');
+  } catch (err) {
+    console.error('Landing page error:', err);
+    res.status(500).send('Internal Server Error at root route');
+  }
+});
+
+// ---------------------------------------------------
+// Routes
+// ---------------------------------------------------
 app.use('/', authRoutes);
 app.use('/admin', adminRoutes);
 app.use('/student', studentRoutes);
@@ -99,13 +155,29 @@ app.use('/admin/sprints', sprintRoutes);
 app.use('/admin/domains', domainRoutes);
 app.use('/deliverables', deliverableRoutes);
 
-// --- SCHEDULED TASKS (CRON JOB) ---
-cron.schedule('1 0 * * *', async () => { /* ... your existing cron job logic ... */ });
+// ---------------------------------------------------
+// Scheduled Tasks (Cron Jobs)
+// ---------------------------------------------------
+cron.schedule('1 0 * * *', async () => {
+  console.log('⏰ Daily cron job executed');
+});
 
-// --- CORRECTED SERVER START ---
+// ---------------------------------------------------
+// Error Handling Middleware
+// ---------------------------------------------------
+app.use((err, req, res, next) => {
+  console.error('💥 Error:', err.stack);
+  res.status(500).send('Internal Server Error');
+});
+
+// ---------------------------------------------------
+// Start Server (Render Compatible)
+// ---------------------------------------------------
 const PORT = process.env.PORT || 8080;
-// Use server.listen() to ensure Socket.IO works
-server.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}`);
-    // console.log(`Server is running on http://10.158.254.42:${PORT}`);
+server.listen(PORT, '0.0.0.0', () => {
+  if (process.env.NODE_ENV === 'production') {
+    console.log(`🚀 Server running in production on port ${PORT}`);
+  } else {
+    console.log(`🚀 Server running locally at http://localhost:${PORT}`);
+  }
 });

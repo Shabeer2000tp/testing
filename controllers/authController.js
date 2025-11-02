@@ -1,3 +1,4 @@
+
 const bcrypt = require('bcryptjs');
 const Login = require('../models/Login');
 const Student = require('../models/Student');
@@ -16,7 +17,7 @@ exports.getLogin = (req, res) => {
     if (req.session.isLoggedIn) {
         return res.redirect(`/${req.session.user.role}/dashboard`);
     }
-    res.render('login', { title: 'Login', layout: 'partials/_auth-layout' });
+    res.render('login', { title: 'Login', layout: 'partials/_auth-layout', pageType: 'two-column' });
 };
 
 exports.postLogin = async (req, res) => {
@@ -65,10 +66,10 @@ exports.postLogin = async (req, res) => {
         // --- END OF ADDED BLOCK ---
 
 
-        req.session.isLoggedIn = true;
+       req.session.isLoggedIn = true;
         req.session.user = {
             loginId: userLogin._id,
-            id: userLogin._id,
+            id: userLogin.profileId, // <-- Use the correct profile ID
             role: userLogin.role,
             profileId: userLogin.profileId,
            name: profile.name // <-- Name is now included in the session
@@ -94,7 +95,11 @@ exports.postLogin = async (req, res) => {
 
 // --- REGISTRATION ---
 exports.getRegister = (req, res) => {
-    res.render('register', { title: 'Register', layout: 'partials/_auth-layout' });
+    res.render('register', { 
+        title: 'Register', 
+        layout: 'partials/_auth-layout',
+        pageType: 'single-column' // Pass type to layout
+    });
 };
 
 exports.postRegister = async (req, res) => {

@@ -309,6 +309,7 @@ exports.getTeamDetailPage = async (req, res) => {
 
         // --- FIX: Fetch the approved proposal to get the project title ---
         const proposal = await Proposal.findOne({ team: team._id, status: 'Approved' }).populate('domain');
+        team.projectTitle = proposal ? proposal.title : 'Not yet defined';
         team.domainName = proposal && proposal.domain ? proposal.domain.name : 'N/A';
         // --- End of fix ---
 
@@ -316,6 +317,15 @@ exports.getTeamDetailPage = async (req, res) => {
         startOfToday.setHours(0, 0, 0, 0);
         const endOfToday = new Date();
         endOfToday.setHours(23, 59, 59, 999);
+
+        // --- NEW: Calculate Overall Project Progress ---
+        const teamSprints = await Sprint.find({ team: team._id });
+        const overallTotalPoints = teamSprints.reduce((sum, sprint) => sum + (sprint.capacity || 0), 0);
+        
+        const allCompletedTasks = await Task.find({ team: team._id, status: 'Done' });
+        const overallCompletedPoints = allCompletedTasks.reduce((sum, task) => sum + (task.storyPoints || 0), 0);
+        team.overallCompletedPoints = overallCompletedPoints;
+        team.overallTotalPoints = overallTotalPoints;
 
         const sprintSetting = await Setting.findOne({ key: 'sprintCreation' });
         let activeSprint;
@@ -335,6 +345,9 @@ exports.getTeamDetailPage = async (req, res) => {
                 status: { $in: ['Active', 'Pending'] }
             });
         }
+
+        // --- NEW: Fetch upcoming reviews for the team ---
+        const upcomingReviews = await Review.find({ team: team._id, reviewDate: { $gte: new Date() } }).sort({ reviewDate: 'asc' }).limit(3);
 
         let dailyLogs = [], deliverables = [];
         if (activeSprint) {
@@ -372,15 +385,24 @@ exports.getTeamDetailPage = async (req, res) => {
                 actualData.push(remainingPoints);
             }
             team.burndownChartData = { labels: JSON.stringify(labels), actualData: JSON.stringify(actualData), idealData: JSON.stringify(idealData) };
+        } else {
+            // --- NEW: If no active sprint, fetch past sprints for context ---
+            const pastSprints = await Sprint.find({ team: team._id, status: 'Completed' }).sort({ endDate: -1 }).limit(5);
+            for(const sprint of pastSprints) {
+                const tasks = await Task.find({ sprint: sprint._id, status: 'Done' });
+                sprint.completed = tasks.reduce((sum, task) => sum + (task.storyPoints || 0), 0);
+            }
+            team.pastSprints = pastSprints;
         }
         
-        res.render('partials/team-detail', { 
+        res.render('partials/team-detail', {
             title: `Team: ${team.name}`, 
             user: req.session.user,
             team, 
             activeSprint, 
             dailyLogs, 
             deliverables,
+            upcomingReviews, // Pass the upcoming reviews to the view
             sprintSetting: sprintSetting || { value: 'global' }
         });
     } catch (error) {
@@ -857,6 +879,7 @@ exports.postResendNotification = async (req, res) => {
 exports.postSendNotification = async (req, res) => {
     try {
         const { recipients, message, link } = req.body;
+        const recipientDetails = req.body['recipient-details'] ? JSON.parse(req.body['recipient-details']) : {};
         const senderName = req.session.user.name;
 
         if (!recipients || !message) {
@@ -885,12 +908,26 @@ exports.postSendNotification = async (req, res) => {
 
         // Create and save a notification for each recipient
         for (const recipientId of uniqueRecipientIds) {
+            let recipientDisplayName = 'System'; // Default
+
+            // Find the display name for this recipient
+            if (recipientDetails[recipientId]) {
+                recipientDisplayName = recipientDetails[recipientId];
+            } else if (recipientsArray.includes('all_students') && recipientsArray.includes('all_guides')) {
+                recipientDisplayName = 'All Users';
+            } else if (recipientsArray.includes('all_students')) {
+                recipientDisplayName = 'All Students';
+            } else if (recipientsArray.includes('all_guides')) {
+                recipientDisplayName = 'All Guides';
+            }
+
             const newNotification = new Notification({
                 recipient: recipientId,
                 senderName,
                 message,
                 link: link || '#',
-                attachment: req.file ? { path: req.file.path, originalName: req.file.originalname } : undefined
+                attachment: req.file ? { path: req.file.path, originalName: req.file.originalname } : undefined,
+                recipientDisplayName // Store the determined display name
             });
             await newNotification.save();
 

@@ -160,6 +160,14 @@ exports.getTeamDetailPage = async (req, res) => {
         const proposal = await Proposal.findOne({ team: team._id, status: 'Approved' }).populate('domain');
         team.domainName = proposal && proposal.domain ? proposal.domain.name : 'N/A';
 
+        // --- FIX: Calculate Overall Project Progress correctly for this team ---
+        const teamSprints = await Sprint.find({ team: team._id });
+        const overallTotalPoints = teamSprints.reduce((sum, sprint) => sum + (sprint.capacity || 0), 0);
+        const allCompletedTasks = await Task.find({ team: team._id, status: 'Done' });
+        const overallCompletedPoints = allCompletedTasks.reduce((sum, task) => sum + (task.storyPoints || 0), 0);
+        team.overallCompletedPoints = overallCompletedPoints;
+        team.overallTotalPoints = overallTotalPoints;
+
         const startOfToday = new Date();
         startOfToday.setHours(0, 0, 0, 0);
         const endOfToday = new Date();
@@ -183,6 +191,9 @@ exports.getTeamDetailPage = async (req, res) => {
                 status: { $in: ['Active', 'Pending'] }
             });
         }
+
+        // --- NEW: Fetch upcoming reviews for the team ---
+        const upcomingReviews = await Review.find({ team: team._id, reviewDate: { $gte: new Date() } }).sort({ reviewDate: 'asc' }).limit(3);
 
         let dailyLogs = [], deliverables = [];
         if (activeSprint) {
@@ -229,6 +240,7 @@ exports.getTeamDetailPage = async (req, res) => {
             activeSprint, 
             dailyLogs, 
             deliverables,
+            upcomingReviews, // Pass the upcoming reviews to the view
             sprintSetting: sprintSetting || { value: 'global' }
         });
     } catch (error) {
@@ -462,7 +474,8 @@ exports.getReviewsPage = async (req, res) => {
 
         // Find all reviews where this guide is in the 'panel' array
         const reviews = await Review.find({ panel: guideId })
-            .populate('team', 'name')
+            .populate('team', 'name') // Keep team name
+            .populate('remarks.reviewer', '_id') // <-- Add this to check remark status
             .sort({ reviewDate: 'desc' });
 
         const sprintSetting = await Setting.findOne({ key: 'sprintCreation' });
@@ -502,13 +515,21 @@ exports.getReviewDetailPage = async (req, res) => {
             return res.redirect('/guide/dashboard');
         }
 
+        // --- NEW: Fetch related project data for context ---
+        // Fetch the team's backlog items
+        const backlogItems = await BacklogItem.find({ team: review.team._id }).sort({ priority: -1 });
+        // Fetch the team's uploaded deliverables
+        const deliverables = await Deliverable.find({ team: review.team._id }).populate('uploadedBy', 'name').sort({ createdAt: -1 });
+
         const sprintSetting = await Setting.findOne({ key: 'sprintCreation' });
 
         res.render('guide/review-detail', {
             title: `Review: ${review.team.name}`,
             user: req.session.user,
             review,
-            sprintSetting: sprintSetting || { value: 'global' }
+            sprintSetting: sprintSetting || { value: 'global' },
+            backlogItems, // Pass backlog to the view
+            deliverables  // Pass deliverables to the view
         });
     } catch (error) {
         console.error("Error loading review detail page:", error);

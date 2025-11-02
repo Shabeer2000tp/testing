@@ -1,0 +1,61 @@
+<div class="card auth-card mx-auto">
+    <div class="card-body p-4 p-sm-5">
+        <div class="text-center mb-4">
+            <img src="/Sslogo Black-01.svg" alt="Sprint Sync Logo" class="auth-logo">
+            <h4 class="mb-1">Create an Account</h4>
+            <p class="text-muted">Join Sprint Sync to manage your projects efficiently.</p>
+        </div>
+
+        <form action="/register" method="POST" id="registrationForm">
+            <div class="mb-3">
+                <label for="name" class="form-label">Full Name</label>
+                <input type="text" class="form-control" id="name" name="name" required>
+            </div>
+            <div class="mb-3">
+                <label for="email" class="form-label">Email</label>
+                <input type="email" class="form-control" id="email" name="email" required>
+            </div>
+            <div class="mb-3">
+                <label for="password" class="form-label">Password</label>
+                <input type="password" class="form-control" id="password" name="password" required>
+            </div>
+
+            <div class="mb-3">
+                <label for="role" class="form-label">Register as</label>
+                <select class="form-select" id="role" name="role" required>
+                    <option value="" disabled selected>Select your role...</option>
+                    <option value="student">Student</option>
+                    <option value="guide">Guide</option>
+                </select>
+            </div>
+
+            <!-- Conditional Fields -->
+            <div id="student-fields" class="mb-3" style="display: none;">
+                <label for="studentIdNumber" class="form-label">Student ID Number</label>
+                <input type="text" class="form-control" id="studentIdNumber" name="studentIdNumber">
+            </div>
+            <div id="guide-fields" class="mb-3" style="display: none;">
+                <label for="department" class="form-label">Department</label>
+                <input type="text" class="form-control" id="department" name="department">
+            </div>
+
+            <div class="d-grid mb-3">
+                <button type="submit" class="btn btn-primary btn-lg">Register</button>
+            </div>
+            <div class="text-center">
+                <p class="mb-0">Already have an account? <a href="/login">Sign In</a></p>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    document.getElementById('role').addEventListener('change', function () {
+        const role = this.value;
+        const studentFields = document.getElementById('student-fields');
+        const guideFields = document.getElementById('guide-fields');
+
+        studentFields.style.display = role === 'student' ? 'block' : 'none';
+        guideFields.style.display = role === 'guide' ? 'block' : 'none';
+    });
+</script>

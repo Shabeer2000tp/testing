@@ -35,9 +35,22 @@
                             <tr>
                                 <td>
                                     <% if (notification.recipient && notification.recipient.profileId && notification.recipient.profileId.name) { %>
-                                        <%= notification.recipient.profileId.name %>
+                                        <%# Case 1: User with a full profile name exists %>
+                                        <span class="recipient-name"><%= notification.recipient.profileId.name %></span>
+                                        <div class="text-small fst-italic">
+                                            <%= notification.recipient.email %>
+                                            <br>ID: <%= notification.recipient._id %>
+                                        </div>
+                                    <% } else if (notification.recipient && notification.recipient.email) { %>
+                                        <%# Case 2: User profile is missing, but we have their email from the Login record %>
+                                        <span class="recipient-name"><%= notification.recipient.email %></span>
+                                        <div class="text-small fst-italic">ID: <%= notification.recipient._id %></div>
+                                    <% } else if (notification.recipientDisplayName) { %>
+                                        <%# Case 3: It was a group notification (e.g., "All Students") %>
+                                        <span class="text-small fst-italic"><%= notification.recipientDisplayName %></span>
                                     <% } else { %>
-                                        <span class="text-muted">N/A</span>
+                                        <%# Case 4: Final fallback for old, untracked notifications %>
+                                        <span class="text-small fst-italic">Group / System</span>
                                     <% } %>
                                 </td>
                                 <td><%= notification.message.substring(0, 50) %>...</td>

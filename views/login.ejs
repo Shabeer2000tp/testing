@@ -1,26 +1,38 @@
-<div class="row justify-content-center">
-    <div class="col-md-8 col-lg-6 col-xl-5">
-        <div class="card auth-card">
+<div class="card auth-card mx-auto <%= pageType === 'single-column' ? 'single-column' : '' %>">
+    <div class="row g-0">
+        <!-- Left Column: Branding -->
+        <div class="col-lg-5 d-none d-lg-flex auth-branding">
+            <div>
+                <img src="\Sslogo White-02.svg" alt="Sprint Sync Logo" class="auth-branding-logo">
+                <h2 class="mb-3">Welcome Back!</h2>
+                <p class="lead">Sign in to access your dashboard and manage your projects.</p>
+            </div>
+        </div>
+
+        <!-- Right Column: Form -->
+        <div class="col-lg-7">
             <div class="card-body p-4 p-sm-5">
-                <div class="text-center mb-4">
-                    <img src="/Sslogo Black-01.svg" alt="Sprint Sync Logo" class="auth-logo">
-                    <p class="text-muted">Sign in to continue</p>
+                <%- include('./partials/_messages.ejs') %>
+
+                <div class="text-center text-lg-start mb-4">
+                    <h4 class="mb-1">Sign In</h4>
+                    <p class="text-muted">Please enter your credentials to continue.</p>
                 </div>
 
                 <form action="/login" method="POST">
                     <div class="mb-3">
                         <label for="email" class="form-label">Email</label>
-                        <input type="email" class="form-control" id="email" name="email" required>
+                        <input type="email" class="form-control" id="email" name="email" required autofocus>
                     </div>
                     <div class="mb-4">
                         <label for="password" class="form-label">Password</label>
                         <input type="password" class="form-control" id="password" name="password" required>
                     </div>
                     <div class="d-grid mb-3">
-                        <button type="submit" class="btn btn-primary btn-lg">Login</button>
+                        <button type="submit" class="btn btn-accent btn-lg">Sign In</button>
                     </div>
                     <div class="text-center">
-                        <p class="mb-0">Don't have an account? <a href="/register">Register here</a></p>
+                        <p class="mb-0">Don't have an account? <a href="/register">Create one</a></p>
                     </div>
                 </form>
             </div>

@@ -1,13 +1,25 @@
-<div class="row justify-content-center">
-    <div class="col-md-8 col-lg-6 col-xl-5">
-        <div class="card auth-card">
+<div class="card auth-card mx-auto">
+    <div class="row g-0">
+        <!-- Left Column: Branding -->
+        <div class="col-lg-5 d-none d-lg-flex auth-branding">
+            <div>
+                <img src="\Sslogo White-02.svg" alt="Sprint Sync Logo" class="auth-branding-logo">
+                <h2 class="mb-3">Welcome to Sprint Sync</h2>
+                <p class="lead">Your all-in-one platform for seamless project collaboration and management.</p>
+            </div>
+        </div>
+
+        <!-- Right Column: Form -->
+        <div class="col-lg-7">
             <div class="card-body p-4 p-sm-5">
-                <div class="text-center mb-4">
-                    <img src="/Sslogo Black-01.svg" alt="Sprint Sync Logo" class="auth-logo">
+                <%- include('./partials/_messages.ejs') %>
+
+                <div class="text-center text-lg-start mb-4">
+                    <h4 class="mb-1">Create an Account</h4>
                     <p class="text-muted">Get started with Sprint Sync</p>
                 </div>
 
-                <form action="/register" method="POST">
+                <form action="/register" method="POST" id="registrationForm">
                     <div class="mb-3">
                         <label for="name" class="form-label">Full Name</label>
                         <input type="text" class="form-control" id="name" name="name" required>
@@ -19,22 +31,118 @@
                     <div class="mb-3">
                         <label for="password" class="form-label">Password</label>
                         <input type="password" class="form-control" id="password" name="password" required>
+                        <div id="password-strength-msg" class="form-text mt-1"></div>
                     </div>
                     <div class="mb-3">
-                        <label for="role" class="form-label">Role</label>
+                        <label for="confirm-password" class="form-label">Confirm Password</label>
+                        <input type="password" class="form-control" id="confirm-password" name="confirmPassword" required>
+                        <div id="password-match-msg" class="form-text mt-1"></div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="role" class="form-label">Register as</label>
                         <select class="form-select" id="role" name="role" required>
+                            <option value="" disabled selected>Select your role...</option>
                             <option value="student">Student</option>
                             <option value="guide">Guide</option>
                         </select>
                     </div>
+
+                    <!-- Conditional Fields -->
+                    <div id="student-fields" class="mb-3" style="display: none;">
+                        <label for="studentIdNumber" class="form-label">Student ID Number</label>
+                        <input type="text" class="form-control" id="studentIdNumber" name="studentIdNumber">
+                    </div>
+                    <div id="guide-fields" class="mb-3" style="display: none;">
+                        <label for="department" class="form-label">Department</label>
+                        <input type="text" class="form-control" id="department" name="department">
+                    </div>
+
                     <div class="d-grid mb-3">
-                        <button type="submit" class="btn btn-primary btn-lg">Register</button>
+                        <button type="submit" class="btn btn-accent btn-lg" id="register-btn" disabled>Register</button>
                     </div>
                     <div class="text-center">
-                        <p class="mb-0">Already have an account? <a href="/login">Login here</a></p>
+                        <p class="mb-0">Already have an account? <a href="/login">Sign In</a></p>
                     </div>
                 </form>
             </div>
         </div>
     </div>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const roleSelect = document.getElementById('role');
+        const studentFields = document.getElementById('student-fields');
+        const guideFields = document.getElementById('guide-fields');
+        const studentIdInput = document.getElementById('studentIdNumber');
+        const departmentInput = document.getElementById('department');
+
+        const passwordInput = document.getElementById('password');
+        const confirmPasswordInput = document.getElementById('confirm-password');
+        const strengthMsg = document.getElementById('password-strength-msg');
+        const matchMsg = document.getElementById('password-match-msg');
+        const registerBtn = document.getElementById('register-btn');
+
+        let isPasswordStrong = false;
+        let passwordsMatch = false;
+
+        roleSelect.addEventListener('change', function () {
+            if (this.value === 'student') {
+                studentFields.style.display = 'block';
+                studentIdInput.required = true;
+                guideFields.style.display = 'none';
+                departmentInput.required = false;
+                departmentInput.value = ''; // Clear other field
+            } else if (this.value === 'guide') {
+                guideFields.style.display = 'block';
+                departmentInput.required = true;
+                studentFields.style.display = 'none';
+                studentIdInput.required = false;
+                studentIdInput.value = ''; // Clear other field
+            } else {
+                studentFields.style.display = 'none';
+                studentIdInput.required = false;
+                guideFields.style.display = 'none';
+                departmentInput.required = false;
+            }
+        });
+
+        function checkPasswordStrength() {
+            const password = passwordInput.value;
+            const hasLength = password.length >= 8;
+            const hasUpper = /[A-Z]/.test(password);
+            const hasLower = /[a-z]/.test(password);
+            const hasNumber = /[0-9]/.test(password);
+
+            isPasswordStrong = hasLength && hasUpper && hasLower && hasNumber;
+            
+            if (password.length === 0) {
+                strengthMsg.innerHTML = '';
+            } else if (isPasswordStrong) {
+                strengthMsg.innerHTML = '<span class="text-success">✓ Password is strong</span>';
+            } else {
+                strengthMsg.innerHTML = '<span class="text-danger">Password must be 8+ characters with uppercase, lowercase, and a number.</span>';
+            }
+            validateForm();
+        }
+
+        function checkPasswordMatch() {
+            passwordsMatch = passwordInput.value === confirmPasswordInput.value;
+            if (confirmPasswordInput.value.length === 0) {
+                matchMsg.innerHTML = '';
+            } else if (passwordsMatch) {
+                matchMsg.innerHTML = '<span class="text-success">✓ Passwords match</span>';
+            } else {
+                matchMsg.innerHTML = '<span class="text-danger">Passwords do not match.</span>';
+            }
+            validateForm();
+        }
+
+        function validateForm() {
+            registerBtn.disabled = !(isPasswordStrong && passwordsMatch);
+        }
+
+        passwordInput.addEventListener('input', checkPasswordStrength);
+        confirmPasswordInput.addEventListener('input', checkPasswordMatch);
+    });
+</script>

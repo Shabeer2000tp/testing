@@ -6,28 +6,42 @@
 </div>
 
 <% if (reviews.length > 0) { %>
-    <div class="accordion" id="reviewsAccordion">
-        <% reviews.forEach((review, index) => { %>
-            <div class="accordion-item">
-                <h2 class="accordion-header" id="heading-<%= index %>">
-                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-<%= index %>">
-                        <span class="me-3"><i class="fas fa-clipboard-check text-primary"></i></span>
-                        <div class="flex-grow-1">
-                            <strong>Review for <%= review.team.name %></strong>
-                            <div class="small text-muted">Date: <%= new Date(review.reviewDate).toLocaleString() %></div>
-                        </div>
-                    </button>
-                </h2>
-                <div id="collapse-<%= index %>" class="accordion-collapse collapse" data-bs-parent="#reviewsAccordion">
-                    <div class="accordion-body">
-                        <p>This review is for team <strong><%= review.team.name %></strong>.</p>
-                        <a href="/guide/reviews/<%= review._id %>" class="btn btn-primary">
-                            <i class="fas fa-eye me-1"></i> View Details & Add Remarks
-                        </a>
-                    </div>
-                </div>
+    <div class="card">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Team</th>
+                            <th>Review Date</th>
+                            <th>Status</th>
+                            <th class="text-end">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% reviews.forEach(review => { %>
+                            <% const hasSubmitted = review.remarks.some(r => r.reviewer && r.reviewer._id.equals(user.profileId)); %>
+                            <tr>
+                                <td><strong><%= review.team.name %></strong></td>
+                                <td><%= new Date(review.reviewDate).toLocaleDateString() %></td>
+                                <td>
+                                    <% if (hasSubmitted) { %>
+                                        <span class="status-badge status-completed">Submitted</span>
+                                    <% } else { %>
+                                        <span class="status-badge status-at-risk">Pending</span>
+                                    <% } %>
+                                </td>
+                                <td class="text-end">
+                                    <a href="/guide/reviews/<%= review._id %>" class="btn btn-sm btn-primary">
+                                        <i class="fas fa-eye me-2"></i> View Details
+                                    </a>
+                                </td>
+                            </tr>
+                        <% }); %>
+                    </tbody>
+                </table>
             </div>
-        <% }); %>
+        </div>
     </div>
 <% } else { %>
     <div class="card">
