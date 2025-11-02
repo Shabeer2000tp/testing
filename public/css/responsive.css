@@ -1,0 +1,126 @@
+/* General Responsive Styles */
+body {
+    -webkit-tap-highlight-color: transparent; /* Removes tap highlight on touch devices */
+}
+
+/* --- Main App Layout (Sidebar & Content) --- */
+.sidebar {
+    transition: transform 0.3s ease-in-out;
+}
+
+.main-content {
+    transition: margin-left 0.3s ease-in-out;
+}
+
+.hamburger-menu {
+    display: none; /* Hidden by default */
+    position: fixed;
+    top: 15px;
+    left: 15px;
+    z-index: 1031; /* Above sidebar */
+    background: #222;
+    border: 1px solid #444;
+    border-radius: 8px;
+    padding: 8px 12px;
+    cursor: pointer;
+}
+
+.hamburger-menu i {
+    color: #fff;
+    font-size: 20px;
+}
+
+/* --- Tablet & Mobile Breakpoints --- */
+@media (max-width: 992px) {
+    .sidebar {
+        transform: translateX(-100%);
+        position: fixed;
+        height: 100%;
+        z-index: 1030;
+    }
+
+    .sidebar.active {
+        transform: translateX(0);
+    }
+
+    .main-content {
+        margin-left: 0 !important;
+    }
+
+    .hamburger-menu {
+        display: block;
+    }
+
+    /* Overlay for when the menu is open */
+    .body-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.5);
+        z-index: 1029;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s ease;
+    }
+
+    .body-overlay.active {
+        opacity: 1;
+        pointer-events: auto;
+    }
+}
+
+/* --- Landing Page (`style.css`) Adjustments --- */
+@media (max-width: 768px) {
+    .container {
+        padding: 3rem 1.5rem;
+    }
+
+    header {
+        flex-direction: column;
+        gap: 1.5rem;
+        margin-bottom: 3rem;
+    }
+
+    nav {
+        text-align: center;
+    }
+
+    nav a {
+        margin: 0 0.75rem;
+    }
+
+    .hero h1 {
+        font-size: 2rem;
+    }
+
+    .hero p {
+        font-size: 1rem;
+    }
+
+    .how-it-works h2, .features-section h2, .contact-section h2 {
+        font-size: 1.6rem;
+        margin-bottom: 2rem;
+    }
+
+    .cards {
+        flex-direction: column;
+        align-items: center;
+        gap: 2.5rem;
+    }
+
+    .card {
+        width: 100%;
+        max-width: 340px;
+        text-align: center;
+    }
+}
+
+/* --- Team Cards (`team-card.css`) Adjustments --- */
+@media (max-width: 480px) {
+    .card-container {
+        grid-template-columns: 1fr; /* Stack to a single column */
+        gap: 15px;
+    }
+}

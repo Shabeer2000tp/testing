@@ -12,22 +12,16 @@
     justify-content: center;
     align-items: center;
     opacity: 0;
-<<<<<<< HEAD
-    transition: opacity 0.4s ease-in-out;
-    pointer-events: none;
-=======
     visibility: hidden;
     transition: opacity 0.4s, visibility 0.4s;
->>>>>>> f902177b7e1450a110919e25ef11fd28f6037b5d
 }
 
 #loading-screen.visible {
     opacity: 1;
-<<<<<<< HEAD
     pointer-events: auto;
-=======
+
     visibility: visible;
->>>>>>> f902177b7e1450a110919e25ef11fd28f6037b5d
+
 }
 
 #loading-screen .spinner {
