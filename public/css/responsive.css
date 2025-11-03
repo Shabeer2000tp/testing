@@ -1,3 +1,42 @@
+
+/* --- MOBILE FIX START --- */
+@media (max-width: 480px) {
+  body {
+    overflow-x: hidden;
+    padding: 0 10px;
+  }
+
+  h1, h2 {
+    font-size: 1.2rem;
+    text-align: center;
+    word-break: break-word;
+  }
+
+  .dashboard-header, .navbar {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .card {
+    width: 100%;
+    margin: 10px 0;
+    padding: 15px;
+    box-sizing: border-box;
+  }
+
+  .chart-container {
+    width: 100%;
+    overflow-x: auto;
+  }
+
+  .main-content {
+    padding: 15px !important; 
+  }
+}
+/* --- MOBILE FIX END --- */
+
 /* General Responsive Styles */
 body {
     -webkit-tap-highlight-color: transparent; /* Removes tap highlight on touch devices */
@@ -9,7 +48,7 @@ body {
 }
 
 .main-content {
-    transition: margin-left 0.3s ease-in-out;
+    transition: margin-left 0.3s ease-in-out, width 0.3s ease-in-out;
 }
 
 .hamburger-menu {
@@ -44,8 +83,9 @@ body {
     }
 
     .main-content {
+        width: 100%;
         margin-left: 0 !important;
-        padding-left: 70px !important; /* Add padding to prevent overlap with the hamburger menu */
+        padding-left: 60px !important; /* Add padding to prevent overlap with the hamburger menu */
     }
 
     .hamburger-menu {
@@ -124,4 +164,20 @@ body {
         grid-template-columns: 1fr; /* Stack to a single column */
         gap: 15px;
     }
+}
+
+/* --- Responsive Typography --- */
+@media (max-width: 480px) {
+  h1 { font-size: 1.4rem; }
+  h2 { font-size: 1.1rem; }
+  p, span { font-size: 0.9rem; }
+}
+
+/* --- General Container Rules --- */
+body {
+  overflow-x: hidden;
+}
+.container, .card {
+  max-width: 100%;
+  box-sizing: border-box;
 }
