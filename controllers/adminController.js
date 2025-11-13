@@ -671,10 +671,86 @@ exports.getEvaluationReport = async (req, res) => {
             return res.redirect('/admin/teams');
         }
         const proposal = await Proposal.findOne({ team: team._id }).populate('domain');
-        const tasks = await Task.find({ team: team._id }).sort({ createdAt: 1 });
-        const completedTasks = tasks.filter(t => t.status === 'Done');
-        const totalPointsCompleted = completedTasks.reduce((sum, task) => sum + (task.storyPoints || 0), 0);
-        res.render('admin/report', { title: `Report: ${team.name}`, team, proposal, tasks, completedTasks, totalPointsCompleted, moment });
+
+        // --- NEW: Enhanced data fetching for a comprehensive report ---
+
+        // 1. Fetch all sprints the team participated in
+        const sprints = await Sprint.find({ 
+            $or: [{ team: team._id }, { team: { $exists: false } }] 
+        }).sort({ startDate: 'asc' });
+
+        // 2. Fetch all tasks for the team and process them
+        const allTasks = await Task.find({ team: team._id }).populate('sprint', 'name').populate('assignedTo', 'name');
+        const completedTasks = allTasks.filter(t => t.status === 'Done');
+        const totalPointsCompleted = completedTasks.reduce((sum, task) => sum + (task.storyPoints || 0), 0);
+
+        // 3. Structure data by sprint
+        for (const sprint of sprints) {
+            sprint.tasks = allTasks.filter(task => task.sprint && task.sprint._id.equals(sprint._id));
+            sprint.completedPoints = sprint.tasks
+                .filter(t => t.status === 'Done')
+                .reduce((sum, task) => sum + (task.storyPoints || 0), 0);
+        }
+
+        // 4. Calculate individual student contributions
+        const studentContributions = team.students.map(student => {
+            const points = completedTasks
+                .filter(task => task.assignedTo && task.assignedTo._id.equals(student._id))
+                .reduce((sum, task) => sum + (task.storyPoints || 0), 0);
+            return { name: student.name, points };
+        });
+
+        // 5. Fetch all review feedback for the team
+        const reviews = await Review.find({ team: team._id }).populate('remarks.reviewer', 'name');
+
+        // 6. Fetch and group daily logs by student
+        const dailyLogs = await DailyLog.find({ team: team._id }).populate('student', 'name').sort({ createdAt: 'asc' });
+        const logsByStudent = team.students.map(student => {
+            return {
+                studentName: student.name,
+                logs: dailyLogs.filter(log => log.student && log.student._id.equals(student._id))
+            };
+        });
+
+        // 7. Calculate Overall Project Burndown
+        let overallBurndownChartData = null;
+        if (sprints.length > 0) {
+            const projectStartDate = new Date(sprints[0].startDate);
+            const projectEndDate = new Date(sprints[sprints.length - 1].endDate);
+            const today = new Date();
+
+            const totalProjectPoints = sprints.reduce((sum, sprint) => sum + (sprint.capacity || 0), 0);
+            let remainingPoints = totalProjectPoints;
+
+            const totalProjectDurationDays = (projectEndDate - projectStartDate) / (1000 * 60 * 60 * 24) + 1;
+            const idealBurnPerDay = totalProjectPoints / (totalProjectDurationDays > 0 ? totalProjectDurationDays : 1);
+
+            const labels = [], actualData = [], idealData = [];
+            for (let d = new Date(projectStartDate); d <= today && d <= projectEndDate; d.setDate(d.getDate() + 1)) {
+                labels.push(d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+                
+                const daysPassed = (d - projectStartDate) / (1000 * 60 * 60 * 24);
+                idealData.push(Math.round(totalProjectPoints - (daysPassed * idealBurnPerDay)));
+
+                const pointsCompletedOnThisDay = completedTasks.filter(task => new Date(task.updatedAt).toDateString() === d.toDateString()).reduce((sum, task) => sum + (task.storyPoints || 0), 0);
+                remainingPoints -= pointsCompletedOnThisDay;
+                actualData.push(remainingPoints);
+            }
+            overallBurndownChartData = { labels: JSON.stringify(labels), actualData: JSON.stringify(actualData), idealData: JSON.stringify(idealData) };
+        }
+
+        res.render('admin/report', { 
+            title: `Report: ${team.name}`, 
+            team, 
+            proposal, 
+            sprints, // Pass structured sprints instead of flat task list
+            studentContributions, // Pass student contributions
+            reviews, // Pass review feedback
+            logsByStudent, // Pass grouped logs
+            overallBurndownChartData, // Pass chart data
+            totalPointsCompleted, 
+            moment 
+        });
     } catch (error) {
         console.error(error);
         req.flash('error_msg', 'Could not generate report.');

@@ -2,63 +2,195 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Evaluation Report: <%= team.name %></title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body { font-family: 'Times New Roman', Times, serif; line-height: 1.6; color: #333; }
-        .report-container { max-width: 800px; margin: auto; padding: 2rem; }
-        h1, h2, h3 { text-align: center; border-bottom: 2px solid #ddd; padding-bottom: 10px; }
+        body { font-family: 'Times New Roman', Times, serif; line-height: 1.5; color: #000; background-color: #fff; }
+        .report-container { max-width: 800px; margin: auto; padding: 2rem; background-color: #fff; }
+        h1, h2, h3 { border-bottom: 2px solid #eee; padding-bottom: 10px; margin-top: 1.5rem; }
+        h1 { text-align: center; }
+        .header-info { text-align: center; margin-bottom: 2rem; }
+        .header-info p { margin: 0; color: #6c757d; }
         .section { margin-bottom: 2rem; }
+        .section ul { padding-left: 40px; }
+        .section li { margin-bottom: 5px; }
+        .section-title { font-size: 1.5rem; color: #007bff; }
+        .subsection-title { font-size: 1.2rem; color: #333; margin-top: 1.5rem; border-bottom: 1px solid #eee; }
         table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
         th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-        .print-btn { display: block; width: 100px; margin: 2rem auto; padding: 10px; text-align: center; background: #007bff; color: white; border-radius: 5px; cursor: pointer; text-decoration: none; }
+        .print-btn { display: block; width: 120px; margin: 2rem auto; padding: 10px; text-align: center; background: #007bff; color: white; border-radius: 5px; cursor: pointer; text-decoration: none; }
         @media print {
-            body { padding: 0; }
+            body, .report-container { padding: 0; margin: 0; box-shadow: none; }
             .print-btn, .back-link { display: none; }
         }
+        /* .back-link removed */
+        .badge { display: inline-block; padding: .25em .4em; font-size: 75%; font-weight: 700; line-height: 1; text-align: center; white-space: nowrap; vertical-align: baseline; border-radius: .25rem; }
+        .bg-success { color: #fff; background-color: #28a745; }
+        .bg-warning { color: #212529; background-color: #ffc107; }
+        .bg-info { color: #212529; background-color: #17a2b8; }
+        .text-muted { color: #6c757d !important; }
+        .review-block { border-left: 3px solid #eee; padding-left: 15px; margin-bottom: 1rem; }
+        .log-entry { border-bottom: 1px solid #f1f1f1; padding: 8px 0; }
     </style>
 </head>
 <body>
     <div class="report-container">
-        <a href="/admin/teams/<%= team._id %>" class="back-link">&larr; Back to Team Details</a>
         <h1>Final Evaluation Report</h1>
+        <div class="header-info">
+            <p><strong>Team:</strong> <%= team.name %></p>
+            <p><strong>Date Generated:</strong> <%= moment().format('MMMM Do YYYY') %></p>
+        </div>
 
         <div class="section">
-            <h2>Project & Team Details</h2>
+            <h2 class="section-title">1. Project & Team Details</h2>
             <p><strong>Project Title:</strong> <%= proposal.title %></p>
-            <p><strong>Team Name:</strong> <%= team.name %></p>
             <p><strong>Domain:</strong> <%= proposal.domain.name %></p>
             <p><strong>Guide:</strong> <%= team.guide.name %></p>
             <p><strong>Students:</strong></p>
             <ul>
-                <% team.students.forEach(student => { %>
-                    <li><%= student.name %></li>
-                <% }); %>
+                <% team.students.forEach(student => { %><li><%= student.name %></li><% }); %>
             </ul>
         </div>
 
         <div class="section">
-            <h2>Performance Summary</h2>
-            <p><strong>Total Sprints Completed:</strong> <%= team.velocityHistory.length %></p>
-            <p><strong>Total Tasks Completed:</strong> <%= completedTasks.length %> / <%= tasks.length %></p>
+            <h2 class="section-title">2. Overall Performance Summary</h2>
             <p><strong>Total Story Points Completed:</strong> <%= totalPointsCompleted %></p>
-        </div>
-        
-        <div class="section">
-            <h2>Velocity Report</h2>
+            <h3 class="subsection-title">Individual Contributions</h3>
             <table>
-                <thead><tr><th>Sprint</th><th>Completed Story Points</th></tr></thead>
+                <thead><tr><th>Student Name</th><th>Story Points Completed</th></tr></thead>
                 <tbody>
-                    <% team.velocityHistory.forEach(sprint => { %>
+                    <% studentContributions.forEach(contrib => { %>
                         <tr>
-                            <td><%= sprint.sprintName %></td>
-                            <td><%= sprint.completedPoints %></td>
+                            <td><%= contrib.name %></td>
+                            <td><%= contrib.points %> SP</td>
                         </tr>
                     <% }); %>
                 </tbody>
             </table>
         </div>
+        
+        <div class="section">
+            <h2 class="section-title">3. Overall Project Burndown</h2>
+            <% if (overallBurndownChartData) { %>
+                <div class="chart-container" style="position: relative; height:40vh; width:100%">
+                    <canvas id="overallBurndownChart"></canvas>
+                </div>
+            <% } else { %>
+                <p class="text-muted">Not enough data to generate an overall project burndown chart.</p>
+            <% } %>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">4. Sprint-by-Sprint Breakdown</h2>
+            <% sprints.forEach(sprint => { %>
+                <% if (sprint.tasks.length > 0) { %>
+                    <h3 class="subsection-title"><%= sprint.name %></h3>
+                    <p>
+                        <strong>Period:</strong> <%= moment(sprint.startDate).format('MMM D') %> - <%= moment(sprint.endDate).format('MMM D, YYYY') %> | 
+                        <strong>Capacity:</strong> <%= sprint.capacity %> SP | 
+                        <strong>Completed:</strong> <%= sprint.completedPoints %> SP
+                    </p>
+                    <table>
+                        <thead><tr><th>Task</th><th>Assigned To</th><th>Points</th><th>Status</th></tr></thead>
+                        <tbody>
+                            <% sprint.tasks.forEach(task => { %>
+                                <tr>
+                                    <td><%= task.description %></td>
+                                    <td><%= task.assignedTo ? task.assignedTo.name : 'N/A' %></td>
+                                    <td><%= task.storyPoints %></td>
+                                    <td>
+                                        <% if (task.status === 'Done') { %><span class="badge bg-success">Done</span>
+                                        <% } else if (task.status === 'In Progress') { %><span class="badge bg-warning">In Progress</span>
+                                        <% } else { %><span class="badge bg-info">To-Do</span><% } %>
+                                    </td>
+                                </tr>
+                            <% }); %>
+                        </tbody>
+                    </table>
+                <% } %>
+            <% }); %>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">5. Review Feedback</h2>
+            <% if (reviews.length > 0) { %>
+                <% reviews.forEach(review => { %>
+                    <h3 class="subsection-title">Review on <%= moment(review.reviewDate).format('MMMM Do YYYY') %></h3>
+                    <% review.remarks.forEach(remark => { %>
+                        <div class="review-block">
+                            <strong>Feedback from <%= remark.reviewer.name %>:</strong>
+                            <p class="text-muted mb-0"><em><%= remark.remarks || "No specific remarks." %></em></p>
+                            <p class="text-muted mb-0"><strong>Suggestions:</strong> <em><%= remark.suggestions || "No specific suggestions." %></em></p>
+                        </div>
+                    <% }); %>
+                <% }); %>
+            <% } else { %>
+                <p class="text-muted">No review feedback has been recorded for this team.</p>
+            <% } %>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">6. Daily Logs by Member</h2>
+            <% if (logsByStudent.length > 0) { %>
+                <% logsByStudent.forEach(memberLogs => { %>
+                    <% if (memberLogs.logs.length > 0) { %>
+                        <h3 class="subsection-title"><%= memberLogs.studentName %></h3>
+                        <% memberLogs.logs.forEach(log => { %>
+                            <div class="log-entry">
+                                <p class="mb-1"><strong><%= moment(log.createdAt).format('MMMM Do YYYY') %>:</strong> <%= log.logContent %></p>
+                                <% if (log.isBlocked) { %>
+                                    <p class="text-danger mb-0"><small><strong>Blocker:</strong> <%= log.blockerDescription %></small></p>
+                                <% } %>
+                            </div>
+                        <% }); %>
+                    <% } %>
+                <% }); %>
+            <% } else { %>
+                <p class="text-muted">No daily logs have been submitted by this team.</p>
+            <% } %>
+        </div>
 
         <a href="#" onclick="window.print();" class="print-btn">Print Report</a>
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            <% if (overallBurndownChartData) { %>
+                new Chart(document.getElementById('overallBurndownChart'), {
+                    type: 'line',
+                    data: {
+                        labels: <%- overallBurndownChartData.labels %>,
+                        datasets: [{
+                            label: 'Actual Remaining Points',
+                            data: <%- overallBurndownChartData.actualData %>,
+                            borderColor: 'rgba(28, 200, 138, 1)',
+                            backgroundColor: 'rgba(28, 200, 138, 0.1)',
+                            fill: true,
+                            tension: 0.1
+                        }, {
+                            label: 'Ideal Burn',
+                            data: <%- overallBurndownChartData.idealData %>,
+                            borderColor: 'rgba(231, 74, 59, 1)',
+                            borderDash: [5, 5],
+                            fill: false,
+                            tension: 0.1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                title: { display: true, text: 'Story Points' }
+                            }
+                        }
+                    }
+                });
+            <% } %>
+        });
+    </script>
+
 </body>
 </html>
