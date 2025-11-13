@@ -278,13 +278,18 @@ exports.getDashboard = async (req, res) => {
         }
 
         if (team) {
-            const allSprints = await Sprint.find({});
-            overallTotalPoints = allSprints.reduce((sum, sprint) => sum + (sprint.capacity || 0), 0);
+            // --- FIX: Correctly calculate overall total points based on sprint mode ---
+            if (sprintSetting && sprintSetting.value === 'team') {
+                const teamSprints = await Sprint.find({ team: team._id });
+                overallTotalPoints = teamSprints.reduce((sum, sprint) => sum + (sprint.capacity || 0), 0);
+            } else {
+                const globalSprints = await Sprint.find({ team: { $exists: false } });
+                overallTotalPoints = globalSprints.reduce((sum, sprint) => sum + (sprint.capacity || 0), 0);
+            }
             
             const allCompletedTasks = await Task.find({ team: team._id, status: 'Done' });
             overallCompletedPoints = allCompletedTasks.reduce((sum, task) => sum + (task.storyPoints || 0), 0);
 
-            // --- FIX: Add missing properties to team object ---
             const proposal = await Proposal.findOne({ team: team._id, status: 'Approved' }).populate('domain');
             team.domainName = proposal && proposal.domain ? proposal.domain.name : 'N/A';
             team.overallCompletedPoints = overallCompletedPoints;
@@ -381,6 +386,43 @@ exports.getDashboard = async (req, res) => {
                     backgroundColor: '#4e73df', // Blue for sprints
                     borderColor: '#4e73df'
                 });
+            }
+        }
+
+        // --- Overall Project Burndown Chart Logic for Student Dashboard ---
+        if (team) {
+            let allSprintsForTeam;
+            if (sprintSetting && sprintSetting.value === 'team') {
+                allSprintsForTeam = await Sprint.find({ team: team._id }).sort({ startDate: 'asc' });
+            } else {
+                allSprintsForTeam = await Sprint.find({ team: { $exists: false } }).sort({ startDate: 'asc' });
+            }
+
+            if (allSprintsForTeam.length > 0) {
+                const projectStartDate = new Date(allSprintsForTeam[0].startDate);
+                // Determine the project end date as the end date of the last sprint
+                const projectEndDate = new Date(allSprintsForTeam[allSprintsForTeam.length - 1].endDate);
+                const totalProjectPoints = allSprintsForTeam.reduce((sum, sprint) => sum + (sprint.capacity || 0), 0);
+                const allTeamTasks = await Task.find({ team: team._id, status: 'Done' });
+
+                const labels = [], actualData = [], idealData = [];
+                let remainingPoints = totalProjectPoints;
+
+                // Calculate ideal burn over the entire project duration (from first sprint start to last sprint end)
+                const totalProjectDurationDays = (projectEndDate - projectStartDate) / (1000 * 60 * 60 * 24) + 1;
+                const idealBurnPerDay = totalProjectPoints / (totalProjectDurationDays > 0 ? totalProjectDurationDays : 1);
+
+                for (let d = new Date(projectStartDate); d <= today; d.setDate(d.getDate() + 1)) {
+                    labels.push(d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+                    const daysPassed = (d - projectStartDate) / (1000 * 60 * 60 * 24);
+                    idealData.push(Math.round(totalProjectPoints - (daysPassed * idealBurnPerDay)));
+                    const pointsCompletedOnThisDay = allTeamTasks.filter(task => new Date(task.updatedAt).toDateString() === d.toDateString()).reduce((sum, task) => sum + (task.storyPoints || 0), 0);
+                    remainingPoints -= pointsCompletedOnThisDay;
+                    actualData.push(remainingPoints);
+                }
+
+                // Attach to the team object so it's available in the partial
+                team.overallBurndownChartData = { labels: JSON.stringify(labels), actualData: JSON.stringify(actualData), idealData: JSON.stringify(idealData) };
             }
         }
 
@@ -840,7 +882,26 @@ exports.getBacklogPage = async (req, res) => {
         const team = await Team.findOne({ students: req.session.user.profileId });
         let backlogItems = [];
         if (team) {
-            backlogItems = await BacklogItem.find({ team: team._id }).sort({ priority: 1, createdAt: -1 });
+            // --- THIS IS THE FIX ---
+            // Use an aggregation pipeline to sort by logical priority instead of alphabetical.
+            backlogItems = await BacklogItem.aggregate([
+                { $match: { team: team._id } },
+                {
+                    $addFields: {
+                        priorityOrder: {
+                            $switch: {
+                                branches: [
+                                    { case: { $eq: ["$priority", "High"] }, then: 1 },
+                                    { case: { $eq: ["$priority", "Medium"] }, then: 2 },
+                                    { case: { $eq: ["$priority", "Low"] }, then: 3 }
+                                ],
+                                default: 4 // Fallback for any other values
+                            }
+                        }
+                    }
+                },
+                { $sort: { priorityOrder: 1, createdAt: -1 } }
+            ]);
         }
         res.render('student/backlog', { 
             title: 'Project Backlog', 
@@ -857,13 +918,40 @@ exports.getBacklogPage = async (req, res) => {
 exports.createBacklogItem = async (req, res) => {
     try {
         const { description, priority, teamId } = req.body;
-        const newBacklogItem = new BacklogItem({ description, priority, team: teamId });
+
+        // Basic input validation
+        if (!description || description.trim() === '') {
+            req.flash('error_msg', 'Backlog item description cannot be empty.');
+            return res.redirect('/student/backlog');
+        }
+        if (!teamId) {
+            req.flash('error_msg', 'Team ID is missing. Cannot add backlog item.');
+            return res.redirect('/student/backlog');
+        }
+
+        // --- THIS IS THE FIX ---
+        // Map the numeric priority from the form to the required string enum value.
+        const priorityMap = {
+            '1': 'High',
+            '2': 'Medium',
+            '3': 'Low'
+        };
+
+        const newBacklogItem = new BacklogItem({
+            description,
+            priority: priorityMap[priority] || 'Medium', // Default to 'Medium' if mapping fails
+            team: teamId
+        });
         await newBacklogItem.save();
         req.flash('success_msg', 'Backlog item added!');
         res.redirect('/student/backlog');
     } catch (error) {
-        console.error(error);
-        req.flash('error_msg', 'Failed to add backlog item.');
+        console.error("Error creating backlog item:", error);
+        let errorMessage = 'Failed to add backlog item.';
+        if (error.name === 'ValidationError') {
+            errorMessage = Object.values(error.errors).map(err => err.message).join(', ');
+        }
+        req.flash('error_msg', errorMessage);
         res.redirect('/student/backlog');
     }
 };
@@ -1254,12 +1342,30 @@ exports.getCalendarPage = async (req, res) => {
             });
         });
 
-        // 2. Fetch and add all of the team's sprints (active, upcoming, etc.)
-        if (team) {
-            const teamSprints = await Sprint.find({ team: team._id });
-            teamSprints.forEach(sprint => {
+        // 2. Fetch and add sprints based on sprint setting
+        let sprintsToDisplay = [];
+        if (sprintSetting && sprintSetting.value === 'team' && team) {
+            sprintsToDisplay = await Sprint.find({ 
+                team: team._id,
+                status: { $ne: 'Completed' } // <-- Only show non-completed sprints
+            });
+            sprintsToDisplay.forEach(sprint => {
                 calendarEvents.push({
                     title: `${sprint.name}`,
+                    start: sprint.startDate,
+                    end: new Date(new Date(sprint.endDate).setDate(sprint.endDate.getDate() + 1)),
+                    backgroundColor: '#4e73df', // Blue
+                    borderColor: '#4e73df'
+                });
+            });
+        } else { // Default to global mode if not team-specific
+            sprintsToDisplay = await Sprint.find({ 
+                team: { $exists: false },
+                status: { $ne: 'Completed' } // <-- Only show non-completed sprints
+            });
+            sprintsToDisplay.forEach(sprint => {
+                calendarEvents.push({
+                    title: `${sprint.name} (Global)`, // Indicate it's a global sprint
                     start: sprint.startDate,
                     end: new Date(new Date(sprint.endDate).setDate(sprint.endDate.getDate() + 1)),
                     backgroundColor: '#4e73df', // Blue

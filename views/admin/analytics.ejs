@@ -24,23 +24,7 @@
         </div>
     </div>
     
-    <div class="card">
-        <div class="card-header">
-            <i class="fas fa-tachometer-alt me-2"></i> Team Velocity
-        </div>
-        <div class="card-body">
-            <% if (JSON.parse(velocityData).labels.length > 0) { %>
-                <div class="burndown-chart-container">
-                    <canvas id="velocityChart"></canvas>
-                </div>
-            <% } else { %>
-                <div class="empty-state">
-                    <i class="fas fa-tachometer-alt"></i>
-                    <p>No completed sprints to display velocity chart.</p>
-                </div>
-            <% } %>
-        </div>
-    </div>
+    
 
     <div class="card">
         <div class="card-header d-flex align-items-center">

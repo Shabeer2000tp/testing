@@ -159,10 +159,21 @@ exports.getTeamDetailPage = async (req, res) => {
         // --- FIX: Add project/domain name to team object for detail page ---
         const proposal = await Proposal.findOne({ team: team._id, status: 'Approved' }).populate('domain');
         team.domainName = proposal && proposal.domain ? proposal.domain.name : 'N/A';
+        team.abstract = proposal ? proposal.description : 'No abstract has been provided for this project.';
 
-        // --- FIX: Calculate Overall Project Progress correctly for this team ---
-        const teamSprints = await Sprint.find({ team: team._id });
-        const overallTotalPoints = teamSprints.reduce((sum, sprint) => sum + (sprint.capacity || 0), 0);
+        const sprintSetting = await Setting.findOne({ key: 'sprintCreation' });
+        let overallTotalPoints = 0;
+
+        if (sprintSetting && sprintSetting.value === 'team') {
+            // In team mode, only sum up the capacity of this team's sprints
+            const teamSprints = await Sprint.find({ team: team._id });
+            overallTotalPoints = teamSprints.reduce((sum, sprint) => sum + (sprint.capacity || 0), 0);
+        } else {
+            // In global mode, sum up the capacity of ALL global sprints
+            const allGlobalSprints = await Sprint.find({ team: { $exists: false } });
+            overallTotalPoints = allGlobalSprints.reduce((sum, sprint) => sum + (sprint.capacity || 0), 0);
+        }
+
         const allCompletedTasks = await Task.find({ team: team._id, status: 'Done' });
         const overallCompletedPoints = allCompletedTasks.reduce((sum, task) => sum + (task.storyPoints || 0), 0);
         team.overallCompletedPoints = overallCompletedPoints;
@@ -173,7 +184,6 @@ exports.getTeamDetailPage = async (req, res) => {
         const endOfToday = new Date();
         endOfToday.setHours(23, 59, 59, 999);
 
-        const sprintSetting = await Setting.findOne({ key: 'sprintCreation' });
         let activeSprint;
 
         if (sprintSetting && sprintSetting.value === 'team') {
@@ -233,6 +243,45 @@ exports.getTeamDetailPage = async (req, res) => {
             team.burndownChartData = { labels: JSON.stringify(labels), actualData: JSON.stringify(actualData), idealData: JSON.stringify(idealData) };
         }
         
+        // --- NEW: Overall Project Burndown Chart Logic ---
+        let allSprintsForTeam;
+        if (sprintSetting && sprintSetting.value === 'team') {
+            allSprintsForTeam = await Sprint.find({ team: team._id }).sort({ startDate: 'asc' });
+        } else {
+            allSprintsForTeam = await Sprint.find({ team: { $exists: false } }).sort({ startDate: 'asc' });
+        }
+
+        if (allSprintsForTeam.length > 0) {
+            const projectStartDate = new Date(allSprintsForTeam[0].startDate);
+            const today = new Date();
+            // Determine the project end date as the end date of the last sprint
+            const projectEndDate = new Date(allSprintsForTeam[allSprintsForTeam.length - 1].endDate);
+
+            const totalProjectPoints = allSprintsForTeam.reduce((sum, sprint) => sum + (sprint.capacity || 0), 0);
+            const allTeamTasks = await Task.find({ team: team._id, status: 'Done' });
+
+            const labels = [], actualData = [], idealData = [];
+            let remainingPoints = totalProjectPoints;
+
+            // Calculate ideal burn over the entire project duration (from first sprint start to last sprint end)
+            const totalProjectDurationDays = (projectEndDate - projectStartDate) / (1000 * 60 * 60 * 24) + 1;
+            const idealBurnPerDay = totalProjectPoints / (totalProjectDurationDays > 0 ? totalProjectDurationDays : 1);
+
+            for (let d = new Date(projectStartDate); d <= today; d.setDate(d.getDate() + 1)) {
+                labels.push(d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+                
+                const daysPassed = (d - projectStartDate) / (1000 * 60 * 60 * 24);
+                // Project the ideal line based on the full project duration
+                idealData.push(Math.round(totalProjectPoints - (daysPassed * idealBurnPerDay)));
+
+                const pointsCompletedOnThisDay = allTeamTasks.filter(task => new Date(task.updatedAt).toDateString() === d.toDateString()).reduce((sum, task) => sum + (task.storyPoints || 0), 0);
+                remainingPoints -= pointsCompletedOnThisDay;
+                actualData.push(remainingPoints);
+            }
+
+            team.overallBurndownChartData = { labels: JSON.stringify(labels), actualData: JSON.stringify(actualData), idealData: JSON.stringify(idealData) };
+        }
+
         res.render('partials/team-detail', { 
             title: `Team: ${team.name}`, 
             user: req.session.user,
@@ -257,8 +306,27 @@ exports.getTeamBacklog = async (req, res) => {
             req.flash('error_msg', 'Team not found or you are not assigned to it.');
             return res.redirect('/guide/dashboard');
         }
-        const backlogItems = await BacklogItem.find({ team: team._id });
-        res.render('guide/view-backlog', { title: `Backlog: ${team.name}`, team, backlogItems });
+        const backlogItems = await BacklogItem.aggregate([
+            { $match: { team: team._id } },
+            {
+                $addFields: {
+                    priorityOrder: {
+                        $switch: {
+                            branches: [
+                                { case: { $eq: ["$priority", "High"] }, then: 1 },
+                                { case: { $eq: ["$priority", "Medium"] }, then: 2 },
+                                { case: { $eq: ["$priority", "Low"] }, then: 3 }
+                            ],
+                            default: 4
+                        }
+                    }
+                }
+            },
+            { $sort: { priorityOrder: 1, createdAt: -1 } }
+        ]);
+
+        const sprintSetting = await Setting.findOne({ key: 'sprintCreation' });
+        res.render('guide/view-backlog', { title: `Backlog: ${team.name}`, team, backlogItems, sprintSetting: sprintSetting || { value: 'global' } });
     } catch (error) {
         console.error(error);
         req.flash('error_msg', 'Could not load team backlog.');
@@ -436,15 +504,35 @@ exports.getCalendarPage = async (req, res) => {
         });
 
         // 2. Fetch all teams managed by this guide
-        const teams = await Team.find({ guide: guideId });
-        const teamIds = teams.map(team => team._id);
-
-        // 3. Fetch all sprints for those teams
-        if (teamIds.length > 0) {
-            const teamSprints = await Sprint.find({ team: { $in: teamIds } });
-            teamSprints.forEach(sprint => {
+        let sprintsToDisplay = [];
+        if (sprintSetting && sprintSetting.value === 'team') {
+            const teams = await Team.find({ guide: guideId });
+            const teamIds = teams.map(team => team._id);
+            if (teamIds.length > 0) {
+                sprintsToDisplay = await Sprint.find({ 
+                    team: { $in: teamIds },
+                    status: { $ne: 'Completed' } // <-- Only show non-completed sprints
+                });
+                sprintsToDisplay.forEach(sprint => {
+                    // For team-specific sprints, include team name in title
+                    const teamName = teams.find(t => t._id.equals(sprint.team)).name;
+                    calendarEvents.push({
+                        title: `${sprint.name} (${teamName})`,
+                        start: sprint.startDate,
+                        end: new Date(new Date(sprint.endDate).setDate(sprint.endDate.getDate() + 1)),
+                        backgroundColor: '#4e73df', // Blue for sprints
+                        borderColor: '#4e73df'
+                    });
+                });
+            }
+        } else { // Global mode
+            sprintsToDisplay = await Sprint.find({ 
+                team: { $exists: false },
+                status: { $ne: 'Completed' } // <-- Only show non-completed sprints
+            });
+            sprintsToDisplay.forEach(sprint => {
                 calendarEvents.push({
-                    title: `${sprint.name} (${teams.find(t => t._id.equals(sprint.team)).name})`,
+                    title: `${sprint.name} (Global)`, // Indicate it's a global sprint
                     start: sprint.startDate,
                     end: new Date(new Date(sprint.endDate).setDate(sprint.endDate.getDate() + 1)),
                     backgroundColor: '#4e73df', // Blue for sprints
@@ -452,6 +540,7 @@ exports.getCalendarPage = async (req, res) => {
                 });
             });
         }
+        
         
         res.render('guide/calendar', {
             title: 'Team Calendar',

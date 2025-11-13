@@ -311,6 +311,7 @@ exports.getTeamDetailPage = async (req, res) => {
         const proposal = await Proposal.findOne({ team: team._id, status: 'Approved' }).populate('domain');
         team.projectTitle = proposal ? proposal.title : 'Not yet defined';
         team.domainName = proposal && proposal.domain ? proposal.domain.name : 'N/A';
+        team.abstract = proposal ? proposal.description : 'No abstract has been provided for this project.';
         // --- End of fix ---
 
         const startOfToday = new Date();
@@ -319,15 +320,23 @@ exports.getTeamDetailPage = async (req, res) => {
         endOfToday.setHours(23, 59, 59, 999);
 
         // --- NEW: Calculate Overall Project Progress ---
-        const teamSprints = await Sprint.find({ team: team._id });
-        const overallTotalPoints = teamSprints.reduce((sum, sprint) => sum + (sprint.capacity || 0), 0);
-        
+        const sprintSetting = await Setting.findOne({ key: 'sprintCreation' });
+        let overallTotalPoints = 0;
+
+        if (sprintSetting && sprintSetting.value === 'team') {
+            // In team mode, only sum up the capacity of this team's sprints
+            const teamSprints = await Sprint.find({ team: team._id });
+            overallTotalPoints = teamSprints.reduce((sum, sprint) => sum + (sprint.capacity || 0), 0);
+        } else {
+            // In global mode, sum up the capacity of ALL global sprints
+            const allGlobalSprints = await Sprint.find({ team: { $exists: false } });
+            overallTotalPoints = allGlobalSprints.reduce((sum, sprint) => sum + (sprint.capacity || 0), 0);
+        }
+
         const allCompletedTasks = await Task.find({ team: team._id, status: 'Done' });
         const overallCompletedPoints = allCompletedTasks.reduce((sum, task) => sum + (task.storyPoints || 0), 0);
         team.overallCompletedPoints = overallCompletedPoints;
         team.overallTotalPoints = overallTotalPoints;
-
-        const sprintSetting = await Setting.findOne({ key: 'sprintCreation' });
         let activeSprint;
 
         if (sprintSetting && sprintSetting.value === 'team') {
@@ -395,6 +404,45 @@ exports.getTeamDetailPage = async (req, res) => {
             team.pastSprints = pastSprints;
         }
         
+        // --- NEW: Overall Project Burndown Chart Logic ---
+        let allSprintsForTeam;
+        if (sprintSetting && sprintSetting.value === 'team') {
+            allSprintsForTeam = await Sprint.find({ team: team._id }).sort({ startDate: 'asc' });
+        } else {
+            allSprintsForTeam = await Sprint.find({ team: { $exists: false } }).sort({ startDate: 'asc' });
+        }
+
+        if (allSprintsForTeam.length > 0) {
+            const projectStartDate = new Date(allSprintsForTeam[0].startDate);
+            const today = new Date();
+            // Determine the project end date as the end date of the last sprint
+            const projectEndDate = new Date(allSprintsForTeam[allSprintsForTeam.length - 1].endDate);
+
+            const totalProjectPoints = allSprintsForTeam.reduce((sum, sprint) => sum + (sprint.capacity || 0), 0);
+            const allTeamTasks = await Task.find({ team: team._id, status: 'Done' });
+
+            const labels = [], actualData = [], idealData = [];
+            let remainingPoints = totalProjectPoints;
+
+            // Calculate ideal burn over the entire project duration (from first sprint start to last sprint end)
+            const totalProjectDurationDays = (projectEndDate - projectStartDate) / (1000 * 60 * 60 * 24) + 1;
+            const idealBurnPerDay = totalProjectPoints / (totalProjectDurationDays > 0 ? totalProjectDurationDays : 1);
+
+            for (let d = new Date(projectStartDate); d <= today; d.setDate(d.getDate() + 1)) {
+                labels.push(d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+                
+                const daysPassed = (d - projectStartDate) / (1000 * 60 * 60 * 24);
+                // Project the ideal line based on the full project duration
+                idealData.push(Math.round(totalProjectPoints - (daysPassed * idealBurnPerDay)));
+
+                const pointsCompletedOnThisDay = allTeamTasks.filter(task => new Date(task.updatedAt).toDateString() === d.toDateString()).reduce((sum, task) => sum + (task.storyPoints || 0), 0);
+                remainingPoints -= pointsCompletedOnThisDay;
+                actualData.push(remainingPoints);
+            }
+
+            team.overallBurndownChartData = { labels: JSON.stringify(labels), actualData: JSON.stringify(actualData), idealData: JSON.stringify(idealData) };
+        }
+
         res.render('partials/team-detail', {
             title: `Team: ${team.name}`, 
             user: req.session.user,
@@ -448,14 +496,17 @@ exports.deleteTeam = async (req, res) => {
 // --- PROPOSAL & BACKLOG MANAGEMENT ---
 exports.getProposalsPage = async (req, res) => {
     try {
-        const proposals = await Proposal.find({ status: 'Pending Admin Confirmation' }).populate({ path: 'team', populate: { path: 'guide' } }).populate('domain');
+        const pendingProposals = await Proposal.find({ status: 'Pending Admin Confirmation' }).populate({ path: 'team', populate: { path: 'guide' } }).populate('domain');
+        const approvedProposals = await Proposal.find({ status: 'Approved' }).populate({ path: 'team', populate: { path: 'guide' } }).populate('domain');
+
         const sprintSetting = await Setting.findOne({ key: 'sprintCreation' });
 
         res.render('admin/proposals', {
             title: 'Review Proposals',
             user: req.session.user, // <-- Add this line
             sprintSetting: sprintSetting || { value: 'global' },
-            proposals
+            pendingProposals,
+            approvedProposals
         });
     } catch (error) {
         console.error(error);
@@ -498,8 +549,26 @@ exports.getTeamBacklog = async (req, res) => {
             req.flash('error_msg', 'Team not found.');
             return res.redirect('/admin/teams');
         }
-        const backlogItems = await BacklogItem.find({ team: team._id });
-        res.render('admin/view-backlog', { title: `Backlog: ${team.name}`, team, backlogItems });
+        const backlogItems = await BacklogItem.aggregate([
+            { $match: { team: team._id } },
+            {
+                $addFields: {
+                    priorityOrder: {
+                        $switch: {
+                            branches: [
+                                { case: { $eq: ["$priority", "High"] }, then: 1 },
+                                { case: { $eq: ["$priority", "Medium"] }, then: 2 },
+                                { case: { $eq: ["$priority", "Low"] }, then: 3 }
+                            ],
+                            default: 4
+                        }
+                    }
+                }
+            },
+            { $sort: { priorityOrder: 1, createdAt: -1 } }
+        ]);
+
+        res.render('admin/view-backlog', { title: `Backlog: ${team.name}`, team, backlogItems, sprintSetting: await Setting.findOne({ key: 'sprintCreation' }) || { value: 'global' } });
     } catch (error) {
         console.error(error);
         req.flash('error_msg', 'Could not load team backlog.');
@@ -510,42 +579,59 @@ exports.getTeamBacklog = async (req, res) => {
 // --- ANALYTICS & REPORTS ---
 exports.getAnalyticsPage = async (req, res) => {
     try {
-        const teams = await Team.find({});
-        const sprints = await Sprint.find({}).sort({ startDate: 1 });
-        
-        let overallBurndownData = null;
-        if (sprints.length > 0) {
-            const projectStartDate = new Date(sprints[0].startDate);
-            const today = new Date();
-            const labels = [];
-            for (let d = new Date(projectStartDate); d <= today; d.setDate(d.getDate() + 1)) {
-                labels.push(d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
-            }
-            
-            // --- REVERT TO INDIVIDUAL TEAM CALCULATION ---
-            const datasets = await Promise.all(teams.map(async (team) => {
-                const tasks = await Task.find({ team: team._id });
-                const totalPoints = tasks.reduce((sum, task) => sum + (task.storyPoints || 0), 0);
-                let remainingPoints = totalPoints;
-                const dailyData = [];
-                for (let d = new Date(projectStartDate); d <= today; d.setDate(d.getDate() + 1)) {
-                    const pointsCompleted = tasks.filter(task => task.status === 'Done' && new Date(task.updatedAt).toDateString() === d.toDateString()).reduce((sum, task) => sum + (task.storyPoints || 0), 0);
-                    remainingPoints -= pointsCompleted;
-                    dailyData.push(remainingPoints);
-                }
-                return { label: team.name, data: dailyData, fill: false };
-            }));
-            
-            overallBurndownData = { 
-                labels: JSON.stringify(labels), 
-                datasets: JSON.stringify(datasets) 
-            };
-        }
+        const sprintSetting = await Setting.findOne({ key: 'sprintCreation' });
+        const isGlobalMode = !sprintSetting || sprintSetting.value === 'global';
 
-        const completedSprints = sprints.filter(s => s.status === 'Completed');
+        const teams = await Team.find({});
+        let sprints = [];
+        let overallBurndownData = null;
+
+        // --- Overall Burndown Chart (ONLY for Global Mode) ---
+        if (isGlobalMode) {
+            sprints = await Sprint.find({ team: { $exists: false } }).sort({ startDate: 1 });
+            if (sprints.length > 0) {
+                const projectStartDate = new Date(sprints[0].startDate);
+                const today = new Date();
+                const labels = [];
+                for (let d = new Date(projectStartDate); d <= today; d.setDate(d.getDate() + 1)) {
+                    labels.push(d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+                }
+
+                const datasets = await Promise.all(teams.map(async (team) => {
+                    const sprintIds = sprints.map(s => s._id);
+                    // Fetch only the tasks for the current team within the relevant sprints
+                    const teamTasksInSprints = await Task.find({ team: team._id, sprint: { $in: sprintIds } });
+
+                    // --- THIS IS THE FIX ---
+                    // Calculate total points based ONLY on the tasks within these sprints
+                    const totalPoints = teamTasksInSprints.reduce((sum, task) => sum + (task.storyPoints || 0), 0);
+                    let remainingPoints = totalPoints;
+                    const dailyData = [];
+                    for (let d = new Date(projectStartDate); d <= today; d.setDate(d.getDate() + 1)) {
+                        const pointsCompleted = teamTasksInSprints.filter(task => task.status === 'Done' && new Date(task.updatedAt).toDateString() === d.toDateString()).reduce((sum, task) => sum + (task.storyPoints || 0), 0);
+                        remainingPoints -= pointsCompleted;
+                        dailyData.push(remainingPoints);
+                    }
+                    return { label: team.name, data: dailyData, fill: false, tension: 0.1 };
+                }));
+
+                overallBurndownData = {
+                    labels: JSON.stringify(labels),
+                    datasets: JSON.stringify(datasets)
+                };
+            }
+        }
+        
+        // --- Velocity Chart (Works for both modes, but respects the mode) ---
+        const completedSprintsQuery = isGlobalMode ? { team: { $exists: false }, status: 'Completed' } : { status: 'Completed' };
+        const completedSprints = await Sprint.find(completedSprintsQuery).sort({ endDate: 1 });
         
         const velocityDatasets = await Promise.all(teams.map(async (team) => {
             const data = await Promise.all(completedSprints.map(async (sprint) => {
+                // If the sprint is team-specific, only count if it matches the current team
+                if (sprint.team && !sprint.team.equals(team._id)) {
+                    return 0;
+                }
                 const tasks = await Task.find({ team: team._id, sprint: sprint._id, status: 'Done' });
                 return tasks.reduce((sum, task) => sum + (task.storyPoints || 0), 0);
             }));
@@ -553,16 +639,16 @@ exports.getAnalyticsPage = async (req, res) => {
                 label: team.name,
                 data: data,
                 fill: false,
-                tension: 0.1
+                tension: 0.1,
+                backgroundColor: `rgba(${Math.random()*255}, ${Math.random()*255}, ${Math.random()*255}, 0.5)`
             };
         }));
 
         const velocityData = {
-            labels: completedSprints.map(s => s.name),
+            labels: completedSprints.map(s => s.team ? `${s.name} (${teams.find(t => t._id.equals(s.team))?.name || 'Team'})` : s.name),
             datasets: velocityDatasets
         };
         
-        const sprintSetting = await Setting.findOne({ key: 'sprintCreation' });
         res.render('admin/analytics', { 
             title: 'Project Analytics',
             user: req.session.user,

@@ -60,14 +60,51 @@
     </div>
 </div>
 
+<!-- Project Abstract Card (Collapsible) -->
+<div class="card shadow mb-4">
+    <a href="#projectAbstractCollapse" class="card-header py-3 d-block text-decoration-none" data-bs-toggle="collapse" role="button" aria-expanded="false" aria-controls="projectAbstractCollapse">
+        <h6 class="m-0 font-weight-bold text-primary d-flex justify-content-between align-items-center">
+            <span><i class="fas fa-book-open me-2"></i>Project Abstract</span>
+            <i class="fas fa-chevron-down collapse-icon"></i>
+        </h6>
+    </a>
+    <div class="collapse" id="projectAbstractCollapse">
+        <div class="card-body">
+            <p class="text-muted mb-0"><%= team.abstract %></p>
+        </div>
+    </div>
+</div>
+
+<% if (activeSprint) { %>
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary"><i class="fas fa-info-circle me-2"></i>Active Sprint Details</h6>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <strong>Sprint Name:</strong> <%= activeSprint.name %><br>
+                    <strong>Goal:</strong> <%= activeSprint.goal %><br>
+                </div>
+                <div class="col-md-6">
+                    <strong>Start Date:</strong> <%= new Date(activeSprint.startDate).toLocaleDateString() %><br>
+                    <strong>End Date:</strong> <%= new Date(activeSprint.endDate).toLocaleDateString() %><br>
+                    <strong>Capacity:</strong> <%= activeSprint.capacity %> Story Points
+                </div>
+            </div>
+        </div>
+    </div>
+<% } %>
+
+
 <% if (activeSprint) { %>
 <div class="row">
 
     <!-- Left Column -->
-    <div class="col-lg-7">
+    <div class="col-lg-8">
         <div class="card mb-4">
             <div class="card-header">
-                <i class="fas fa-chart-line me-2"></i> Sprint Burndown Chart
+                <h6 class="m-0 font-weight-bold text-primary"><i class="fas fa-chart-line me-2"></i> Sprint Burndown Chart</h6>
             </div>
             <div class="card-body">
                 <% if (team.burndownChartData) { %>
@@ -80,38 +117,29 @@
             </div>
         </div>
 
-        <div class="row">
-            <div class="col-md-6">
-                <div class="card">
-                    <div class="card-header"><i class="fas fa-users me-2"></i> Team Members</div>
-                    <div class="list-group list-group-flush">
-                        <div class="list-group-item d-flex justify-content-between align-items-center"><strong><%= team.guide.name %></strong><span class="badge bg-primary">Guide</span></div>
-                        <% team.students.forEach(student => { %>
-                            <div class="list-group-item"><%= student.name %></div>
-                        <% }); %>
+        <!-- Overall Project Burndown Chart -->
+        <% if (team.overallBurndownChartData) { %>
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-success"><i class="fas fa-chart-area me-2"></i>Overall Project Burndown</h6>
+                </div>
+                <div class="card-body">
+                    <div style="height: 300px;">
+                        <canvas id="overallBurndownChart"></canvas>
                     </div>
                 </div>
             </div>
+        <% } else if (!activeSprint) { %>
+            
+            <div class="card shadow mb-4">
+                <div class="card-body text-center p-4"><p class="text-muted">No overall project data available to generate a burndown chart.</p></div>
+            </div>
+        <% } %>
 
-            <div class="col-md-6">
-                <div class="card">
-                    <div class="card-header"><i class="fas fa-calendar-check me-2"></i>Upcoming Reviews</div>
-                    <div class="list-group list-group-flush">
-                        <% if (upcomingReviews && upcomingReviews.length > 0) { %>
-                            <% upcomingReviews.forEach(review => { %>
-                                <div class="list-group-item"><strong><%= new Date(review.reviewDate).toLocaleDateString() %></strong></div>
-                            <% }); %>
-                        <% } else { %>
-                            <div class="list-group-item text-muted">No upcoming reviews scheduled.</div>
-                        <% } %>
-                    </div>
-                </div>
-            </div>
-        </div>
     </div>
 
     <!-- Right Column -->
-    <div class="col-lg-5">
+    <div class="col-lg-4">
         <div class="card">
             <div class="card-header">
                 <ul class="nav nav-tabs card-header-tabs" id="teamDetailTabs" role="tablist">
@@ -185,6 +213,38 @@
                 </div>
             </div>
         </div>
+
+        <!-- Team Members Card -->
+        <div class="card shadow mt-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary"><i class="fas fa-users me-2"></i> Team Members</h6>
+            </div>
+            <div class="list-group list-group-flush">
+                <div class="list-group-item d-flex justify-content-between align-items-center">
+                    <strong><%= team.guide.name %></strong>
+                    <span class="badge bg-primary">Guide</span>
+                </div>
+                <% team.students.forEach(student => { %>
+                    <div class="list-group-item"><%= student.name %></div>
+                <% }); %>
+            </div>
+        </div>
+
+        <!-- Upcoming Reviews Card -->
+        <div class="card shadow mt-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary"><i class="fas fa-calendar-check me-2"></i> Upcoming Reviews</h6>
+            </div>
+            <div class="list-group list-group-flush">
+                <% if (upcomingReviews && upcomingReviews.length > 0) { %>
+                    <% upcomingReviews.forEach(review => { %>
+                        <div class="list-group-item"><strong><%= new Date(review.reviewDate).toLocaleDateString() %></strong></div>
+                    <% }); %>
+                <% } else { %>
+                    <div class="list-group-item text-muted">No upcoming reviews scheduled.</div>
+                <% } %>
+            </div>
+        </div>
     </div>
 
 </div>
@@ -205,7 +265,46 @@ document.addEventListener('DOMContentLoaded', function() {
                 { label:'Ideal Pace', data:<%- team.burndownChartData.idealData %>, borderColor:'#ccc', borderDash:[5,5], fill:false }
             ]
         },
-        options:{ responsive:true, maintainAspectRatio:false }
+        options:{
+            responsive:true,
+            maintainAspectRatio:false,
+            scales: {
+                y: { beginAtZero: true, title: { display: true, text: 'Story Points' } }
+            }
+        }
+    });
+<% } %>
+<% if (team.overallBurndownChartData) { %>
+    new Chart(document.getElementById('overallBurndownChart'), {
+        type: 'line',
+        data: {
+            labels: <%- team.overallBurndownChartData.labels %>,
+            datasets: [{
+                label: 'Actual Remaining Points',
+                data: <%- team.overallBurndownChartData.actualData %>,
+                borderColor: 'rgba(28, 200, 138, 1)', // Success color
+                backgroundColor: 'rgba(28, 200, 138, 0.1)',
+                fill: true,
+                tension: 0.1
+            }, {
+                label: 'Ideal Burn',
+                data: <%- team.overallBurndownChartData.idealData %>,
+                borderColor: 'rgba(231, 74, 59, 1)', // Danger color
+                borderDash: [5, 5],
+                fill: false,
+                tension: 0.1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: { display: true, text: 'Story Points' }
+                }
+            }
+        }
     });
 <% } %>
 });
