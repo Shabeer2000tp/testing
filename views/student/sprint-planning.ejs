@@ -1,99 +1,113 @@
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <div>
-        <h1 class="welcome-header h3 mb-0">Sprint Planning</h1>
-        <p>Plan your work for the active sprint.</p>
-    </div>
-</div>
+<%- include('../partials/_messages') %>
 
-<% if (!activeSprint) { %>
-    <div class="card text-center">
-        <div class="card-body p-5">
-            <i class="fas fa-pause-circle fa-3x text-muted mb-3"></i>
-            <h5 class="text-white">No Active Sprint</h5>
-            <p>There is no active sprint to plan for. Please create a new sprint or wait for one to become active.</p>
-            <% if(sprintSetting && sprintSetting.value === 'team') { %>
-                <a href="/student/sprints" class="btn btn-primary mt-2">Manage Sprints</a>
-            <% } %>
-        </div>
-    </div>
-<% } else { %>
-    <!-- Sprint Details Header -->
-    <div class="card mb-4">
-        <div class="card-body">
-            <h5 class="card-title">Active Sprint: <%= activeSprint.name %></h5>
-            <h6 class="card-subtitle mb-2">
-                <%= new Date(activeSprint.startDate).toLocaleDateString() %> - <%= new Date(activeSprint.endDate).toLocaleDateString() %>
-            </h6>
-            <p class="card-text"><strong>Goal:</strong> <%= activeSprint.goal %></p>
-        </div>
+<div class="container-fluid">
+    <!-- Page Heading -->
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800"><%= title %></h1>
+        <% if (activeSprint) { %>
+            <a href="/student/tasks/new" class="btn btn-primary">
+                <i class="fas fa-plus me-1"></i> Add New Task
+            </a>
+        <% } %>
     </div>
 
-    <div class="planning-board">
-        <!-- Column 1: Product Backlog -->
-        <div class="planning-column">
-            <div class="card">
-                <div class="card-header"><i class="fas fa-list-alt me-2"></i>Product Backlog</div>
-                <div class="card-body">
-                    <% if (backlogItems.length > 0) { %>
-                        <% backlogItems.forEach(item => { %>
-                            <div class="planning-item-card">
-                                <div class="d-flex justify-content-between align-items-start">
-                                    <p class="mb-0"><%= item.description %></p>
-                                    <a href="/student/backlog/<%= item._id %>/plan" class="btn btn-sm btn-primary" title="Plan this task">
-                                        <i class="fas fa-arrow-right"></i>
-                                    </a>
-                                </div>
-                                <div class="mt-2">
-                                    <% if (item.priority === 1) { %>
-                                        <span class="priority-badge priority-1">High</span>
-                                    <% } else if (item.priority === 2) { %>
-                                        <span class="priority-badge priority-2">Medium</span>
-                                    <% } else { %>
-                                        <span class="priority-badge priority-3">Low</span>
+    <% if (activeSprint) { %>
+        <div class="row">
+            <!-- Left Column: Backlog Items -->
+            <div class="col-lg-6">
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold text-primary">Project Backlog (New Items)</h6>
+                    </div>
+                    <div class="card-body">
+                        <% const newItems = backlogItems.filter(item => item.status === 'New'); %>
+                        <% if (newItems.length > 0) { %>
+                            <div class="list-group">
+                                <% newItems.forEach(item => { %>
+                                    <% if (item.status === 'New') { %>
+                                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <span class="badge bg-<%= item.priority === 'High' ? 'danger' : (item.priority === 'Medium' ? 'warning' : 'info') %> me-2"><%= item.priority %></span>
+                                                <%= item.description %>
+                                            </div>
+                                            <a href="/student/backlog/<%= item._id %>/plan" class="btn btn-sm btn-outline-success">Plan Task</a>
+                                        </div>
                                     <% } %>
-                                </div>
+                                <% }) %>
                             </div>
-                        <% }); %>
-                    <% } else { %>
-                        <p class="text-center p-3">The product backlog is empty.</p>
-                    <% } %>
+                        <% } else { %>
+                            <p class="text-center text-muted">There are no new items in the project backlog.</p>
+                        <% } %>
+                    </div>
+                </div>
+
+                <!-- NEW: Planned Backlog Items -->
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold text-secondary">Planned Items</h6>
+                    </div>
+                    <div class="card-body">
+                        <% const plannedItems = backlogItems.filter(item => item.status === 'In Sprint'); %>
+                        <% if (plannedItems.length > 0) { %>
+                            <div class="list-group">
+                                <% plannedItems.forEach(item => { %>
+                                    <div class="list-group-item list-group-item-light text-muted">
+                                        <i class="fas fa-check-circle text-success me-2"></i><%= item.description %>
+                                    </div>
+                                <% }) %>
+                            </div>
+                        <% } else { %>
+                            <p class="text-center text-muted">No backlog items have been moved to the sprint yet.</p>
+                        <% } %>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Sprint Tasks -->
+            <div class="col-lg-6">
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold text-success">Tasks in Current Sprint (<%= activeSprint.name %>)</h6>
+                    </div>
+                    <div class="card-body">
+                        <% if (sprintTasks.length > 0) { %>
+                            <ul class="list-group">
+                                <% 
+                                const groupedTasks = [];
+                                const processed = new Set();
+                                sprintTasks.forEach(task => {
+                                    if (processed.has(task.description)) return;
+                                    if (task.assignedToAll) processed.add(task.description);
+                                    groupedTasks.push(task);
+                                });
+                                %>
+                                <% groupedTasks.forEach(task => { %>
+                                    <li class="list-group-item d-flex justify-content-between align-items-start">
+                                        <div>
+                                            <p class="mb-1"><%= task.description %></p>
+                                            <small class="d-block text-muted">
+                                                <i class="fas fa-user me-1"></i> <%= task.assignedToAll ? 'All Members' : (task.assignedTo ? task.assignedTo.name : 'Unassigned') %>
+                                            </small>
+                                            <small class="d-block text-muted">
+                                                <i class="fas fa-calendar-alt me-1"></i> <%= new Date(task.startDate).toLocaleDateString() %> - <%= new Date(task.endDate).toLocaleDateString() %>
+                                            </small>
+                                        </small>
+                                    </li>
+                                <% }) %>
+                            </ul>
+                        <% } else { %>
+                            <p class="text-center text-muted">No tasks have been planned for this sprint yet.</p>
+                        <% } %>
+                    </div>
                 </div>
             </div>
         </div>
-
-        <!-- Column 2: Sprint Backlog -->
-        <div class="planning-column">
-            <div class="card">
-                <div class="card-header"><i class="fas fa-tasks me-2"></i>Sprint Backlog</div>
-                <div class="card-body">
-                    <% const currentLoad = sprintTasks.reduce((sum, task) => sum + task.storyPoints, 0); %>
-                    <% const capacity = activeSprint.capacity; %>
-                    <% const percentage = capacity > 0 ? (currentLoad / capacity) * 100 : 0; %>
-
-                    <div class="sprint-capacity-bar">
-                        <div class="progress-bar-inner sprint-progress" style="width: <%= percentage.toFixed(2) %>%;" title="Sprint Load"></div>
-                    </div>
-                    <div class="text-center small mb-3">
-                        <strong><%= currentLoad %> / <%= capacity %></strong> Story Points Planned
-                    </div>
-
-                    <% if (sprintTasks.length > 0) { %>
-                        <% sprintTasks.forEach(task => { %>
-                            <div class="planning-item-card">
-                                <div class="d-flex justify-content-between align-items-start">
-                                    <p class="mb-0"><%= task.description %></p>
-                                    <span class="badge bg-secondary rounded-pill"><%= task.storyPoints %> SP</span>
-                                </div>
-                                <div class="mt-2 small">
-                                    Assigned to: <%= task.assignedTo ? task.assignedTo.name : (task.assignedToAll ? 'All Members' : 'Unassigned') %>
-                                </div>
-                            </div>
-                        <% }); %>
-                    <% } else { %>
-                        <p class="text-center p-3">Pull items from the product backlog to plan your sprint.</p>
-                    <% } %>
-                </div>
+    <% } else { %>
+        <div class="card text-center p-5">
+            <div class="card-body">
+                <h5 class="card-title">No Active Sprint</h5>
+                <p class="card-text text-muted">There is no active sprint to plan for. Please wait for an admin or guide to create one.</p>
             </div>
         </div>
-    </div>
-<% } %>
+    <% } %>
+</div>

@@ -4,8 +4,8 @@
     <!-- Page Heading -->
     <div class="d-sm-flex align-items-center justify-content-between mb-4">
         <h1 class="h3 mb-0 text-gray-800"><%= title %></h1>
-        <a href="/student/sprint-planning" class="btn btn-sm btn-outline-secondary">
-            <i class="fas fa-arrow-left me-1"></i> Back to Sprint Planning
+        <a href="/student/dashboard" class="btn btn-sm btn-outline-secondary">
+            <i class="fas fa-arrow-left me-1"></i> Back to Dashboard
         </a>
     </div>
 
@@ -14,19 +14,30 @@
         <div class="col-lg-8">
             <div class="card shadow mb-4">
                 <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-primary">Plan Task Details</h6>
+                    <h6 class="m-0 font-weight-bold text-primary">New Task Details</h6>
                 </div>
                 <div class="card-body">
                     <form action="/student/tasks" method="POST">
                         <!-- Hidden fields for IDs -->
                         <input type="hidden" name="sprintId" value="<%= activeSprint._id %>">
                         <input type="hidden" name="teamId" value="<%= team._id %>">
-                        <input type="hidden" name="backlogItemId" value="<%= backlogItem._id %>">
+
+                        <!-- Backlog Item (Optional) -->
+                        <div class="mb-3">
+                            <label for="backlogItemId" class="form-label">Link to Backlog Item (Optional)</label>
+                            <select class="form-select" id="backlogItemId" name="backlogItemId">
+                                <option value="">-- Create as new ad-hoc task --</option>
+                                <% backlogItems.forEach(item => { %>
+                                    <option value="<%= item._id %>">[<%= item.priority %>] <%= item.description %></option>
+                                <% }) %>
+                            </select>
+                        </div>
 
                         <!-- Task Description -->
                         <div class="mb-3">
                             <label for="description" class="form-label">Task Description</label>
-                            <textarea class="form-control" id="description" name="description" rows="3" required><%= backlogItem.description %></textarea>
+                            <textarea class="form-control" id="description" name="description" rows="3" required placeholder="Enter a detailed description of the task..."></textarea>
+                            <small class="form-text text-muted">If linking to a backlog item, this can be a sub-task description.</small>
                         </div>
 
                         <!-- Story Points -->
@@ -73,25 +84,8 @@
             </div>
         </div>
 
-        <!-- Right Column: Context Info -->
+        <!-- Right Column: Sprint Info -->
         <div class="col-lg-4">
-            <!-- Backlog Item Info -->
-            <div class="card shadow mb-4">
-                <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-secondary">From Backlog</h6>
-                </div>
-                <div class="card-body">
-                    <p class="mb-1"><strong>Item:</strong></p>
-                    <p class="text-muted"><%= backlogItem.description %></p>
-                    <p class="mb-0"><strong>Priority:</strong> 
-                        <span class="badge bg-<%= backlogItem.priority === 'High' ? 'danger' : (backlogItem.priority === 'Medium' ? 'warning' : 'info') %>">
-                            <%= backlogItem.priority %>
-                        </span>
-                    </p>
-                </div>
-            </div>
-
-            <!-- Sprint Info -->
             <div class="card shadow mb-4">
                 <div class="card-header py-3">
                     <h6 class="m-0 font-weight-bold text-secondary">Target Sprint</h6>

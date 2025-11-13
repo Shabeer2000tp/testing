@@ -7,6 +7,7 @@ const notificationController = require('../controllers/notificationController');
 
 // All routes use isLoggedIn for consistency
 router.get('/dashboard', isLoggedIn, studentController.getDashboard);
+router.get('/tasks/new', isLoggedIn, studentController.getAddTaskPage); // <-- ADD THIS ROUTE
 router.post('/tasks', isLoggedIn, studentController.createTask);
 router.post('/tasks/:id/status', isLoggedIn, studentController.updateTaskStatus);
 router.post('/tasks/:id/move', isLoggedIn, studentController.moveTaskToCurrentSprint);

@@ -689,6 +689,8 @@ exports.createTask = async (req, res) => {
             req.flash('success_msg', 'Task added successfully!');
         }
 
+        // --- THIS IS THE FIX ---
+        // If the task was created from a backlog item, update its status.
         if (backlogItemId) {
             await BacklogItem.findByIdAndUpdate(backlogItemId, { status: 'In Sprint' });
         }
@@ -699,6 +701,64 @@ exports.createTask = async (req, res) => {
     } catch (error) {
         console.error(error);
         req.flash('error_msg', 'An error occurred while creating the task.');
+        res.redirect('/student/dashboard');
+    }
+};
+
+exports.getAddTaskPage = async (req, res) => {
+    try {
+        const team = await Team.findOne({ students: req.session.user.profileId });
+        if (!team) {
+            req.flash('error_msg', 'You must be part of a team to add a task.');
+            return res.redirect('/student/dashboard');
+        }
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const sprintSetting = await Setting.findOne({ key: 'sprintCreation' });
+
+        let activeSprint;
+        if (sprintSetting && sprintSetting.value === 'team') {
+            activeSprint = await Sprint.findOne({ team: team._id, startDate: { $lte: today }, endDate: { $gte: today }, status: { $in: ['Active', 'Pending'] } });
+        } else {
+            activeSprint = await Sprint.findOne({ team: { $exists: false }, startDate: { $lte: today }, endDate: { $gte: today }, status: { $in: ['Active', 'Pending'] } });
+        }
+
+        if (!activeSprint) {
+            req.flash('error_msg', 'There is no active sprint to add a task to.');
+            return res.redirect('/student/dashboard');
+        }
+
+        // --- THIS IS THE FIX ---
+        // Calculate the current load of the sprint before rendering the page.
+        if (activeSprint) {
+            const tasksInSprint = await Task.find({ sprint: activeSprint._id, team: team._id });
+            // Correctly group tasks assigned to all to avoid over-counting
+            const groupedTasks = [];
+            const processed = new Set();
+            tasksInSprint.forEach(task => {
+                if (processed.has(task.description)) return;
+                if (task.assignedToAll) processed.add(task.description);
+                groupedTasks.push(task);
+            });
+            activeSprint.currentLoad = groupedTasks.reduce((sum, task) => sum + (task.storyPoints || 0), 0);
+        }
+
+        // --- THIS IS THE FIX ---
+        // Fetch ALL backlog items for the team, not just 'New' ones, to allow linking multiple tasks.
+        // We'll sort them so 'New' items appear first.
+        const backlogItems = await BacklogItem.find({ team: team._id }).sort({ status: 1, priority: 1 });
+
+        res.render('student/add-task', {
+            title: 'Add New Task',
+            user: req.session.user,
+            team,
+            activeSprint,
+            backlogItems
+        });
+    } catch (error) {
+        console.error("Error getting add task page:", error);
+        req.flash('error_msg', 'Could not load the page to add a task.');
         res.redirect('/student/dashboard');
     }
 };
@@ -722,30 +782,36 @@ exports.updateTaskStatus = async (req, res) => {
             return res.redirect('/student/dashboard');
         }
 
-        if (task.assignedToAll) {
-            // If this task was assigned to all members, update all similar tasks
-            const similarTasks = await Task.find({
-                team: team._id,
-                assignedToAll: true,
-                description: task.description,
-                storyPoints: task.storyPoints,
-                startDate: task.startDate,
-                endDate: task.endDate
+        if (task.assignedToAll && newStatus === 'In Progress') {
+            // A student is starting a task that was for everyone.
+            // Create a new, individual task for this student and leave the "all" task alone.
+            const individualTask = new Task({
+                ...task.toObject(), // Copy properties from the "all" task
+                _id: undefined, // Let mongoose generate a new ID
+                assignedToAll: false, // This is now an individual task
+                assignedTo: studentId, // Assign it to the current student
+                status: 'In Progress', // Set the new status
+                updatedAt: new Date()
             });
-            
-            // Update all similar tasks
-            await Task.updateMany(
-                { _id: { $in: similarTasks.map(t => t._id) } },
-                { status: newStatus, updatedAt: new Date() }
-            );
+            await individualTask.save();
+
+            // Optional: To prevent the student from seeing the "all" task again,
+            // you might consider logic here to hide it for them, but for now,
+            // creating the individual task is the main goal.
+
+        } else if (task.assignedToAll && newStatus === 'Done') {
+            // If a student completes a task that was for everyone (which shouldn't happen if the above logic works)
+            // We'll just update the single instance they are interacting with.
+            await Task.findByIdAndUpdate(taskId, { status: newStatus, updatedAt: new Date() });
         } else {
-            // Regular task, update just this one
+            // This is a regular, individually assigned task. Update it directly.
             await Task.findByIdAndUpdate(taskId, { 
                 status: newStatus, 
                 updatedAt: new Date() 
             });
         }
 
+        req.flash('success_msg', `Task status updated to "${newStatus}".`);
         res.redirect('/student/dashboard');
     } catch (error) {
         console.error(error);
@@ -979,9 +1045,11 @@ exports.getSprintPlanningPage = async (req, res) => {
 
         let backlogItems = [], sprintTasks = [];
         if (team) {
-            backlogItems = await BacklogItem.find({ team: team._id, status: 'New' }).select('description priority');
+            // --- THIS IS THE FIX ---
+            // Fetch ALL backlog items for the team, not just 'New' ones.
+            backlogItems = await BacklogItem.find({ team: team._id }).select('description priority status');
             if (activeSprint) {
-                sprintTasks = await Task.find({ team: team._id, sprint: activeSprint._id });
+                sprintTasks = await Task.find({ team: team._id, sprint: activeSprint._id }).populate('assignedTo', 'name');
             }
         }
         res.render('student/sprint-planning', { 
@@ -1011,13 +1079,16 @@ exports.getPlanTaskPage = async (req, res) => {
         if (team && sprintSetting && sprintSetting.value === 'team') {
             activeSprint = await Sprint.findOne({ 
                 team: team._id, 
-                startDate: { $lte: today }, 
-                endDate: { $gte: today } 
+                startDate: { $lte: today },
+                endDate: { $gte: today },
+                status: { $in: ['Active', 'Pending'] } // <-- FIX: Ensure sprint is not completed
             });
         } else {
             activeSprint = await Sprint.findOne({ 
-                startDate: { $lte: today }, 
-                endDate: { $gte: today } 
+                team: { $exists: false }, // Global sprint
+                startDate: { $lte: today },
+                endDate: { $gte: today },
+                status: { $in: ['Active', 'Pending'] } // <-- FIX: Ensure sprint is not completed
             });
         }
 
@@ -1138,16 +1209,23 @@ exports.getPastSprints = async (req, res) => {
                         }
                     });
                     let remainingPoints = totalStoryPoints;
-                    const labels = [], actualData = [];
+                    const labels = [], actualData = [], segmentColors = [];
+                    const sprintEndDate = new Date(sprint.endDate); // Get sprint end date for comparison
+
                     for (let d = new Date(sprint.startDate); d <= lastCompletionDate; d.setDate(d.getDate() + 1)) {
                         labels.push(d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
                         const pointsCompleted = tasks.filter(t => t.status === 'Done' && new Date(t.updatedAt).toDateString() === d.toDateString()).reduce((sum, task) => sum + (task.storyPoints || 0), 0);
                         remainingPoints -= pointsCompleted;
                         actualData.push(remainingPoints);
+
+                        // Set color: red for days after sprint end, blue otherwise
+                        // The color applies to the line segment *starting* at this point.
+                        segmentColors.push(d >= sprintEndDate ? '#e74a3b' : '#4e73df');
                     }
                     sprint.burndownChartData = {
                         labels: JSON.stringify(labels),
-                        actualData: JSON.stringify(actualData)
+                        actualData: JSON.stringify(actualData),
+                        segmentColors: JSON.stringify(segmentColors) // Pass colors to the view
                     };
                 }
             }));

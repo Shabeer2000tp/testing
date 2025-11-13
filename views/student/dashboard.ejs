@@ -117,21 +117,34 @@
                             <table class="table table-hover">
                                 <thead>
                                     <tr>
-                                        <th>Task Description</th>
+                                        <th style="width: 40%;">Task Description</th>
+                                        <th>Assigned To</th>
+                                        <th>Start Date</th>
+                                        <th>End Date</th>
                                         <th>Story Points</th>
                                         <th>Status</th>
                                         <th>Action</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <% const myTasks = teamTasks.filter(t => t.assignedTo && t.assignedTo._id.equals(user.profileId) || t.assignedToAll); %>
+                                    <% const myTasks = teamTasks.filter(t => (t.assignedTo && t.assignedTo._id.equals(user.profileId)) || t.assignedToAll); %>
                                     <% if (myTasks.length > 0) { %>
                                         <% myTasks.forEach(task => { %>
                                             <tr>
                                                 <td><%= task.description %></td>
-                                                <td><span class="badge bg-secondary"><%= task.storyPoints %></span></td>
+                                                <td>
+                                                    <% if (task.assignedToAll) { %>
+                                                        <span class="badge bg-info text-dark">All Members</span>
+                                                    <% } else if (task.assignedTo) { %>
+                                                        <%= task.assignedTo.name.split(' ')[0] %>
+                                                    <% } %>
+                                                </td>
+                                                <td><%= new Date(task.startDate).toLocaleDateString() %></td>
+                                                <td><%= new Date(task.endDate).toLocaleDateString() %></td>
+                                                <td><span class="badge bg-secondary"><%= task.storyPoints %> SP</span></td>
                                                 <td><span class="status-badge <%= task.realtimeStatus.badgeClass %>"><%= task.realtimeStatus.text %></span></td>
                                                 <td>
+                                                    <!-- Action Button -->
                                                     <form action="/student/tasks/<%= task._id %>/status" method="POST" class="d-inline">
                                                         <% if (task.status === 'To-Do') { %>
                                                             <input type="hidden" name="status" value="In Progress">
@@ -148,7 +161,7 @@
                                         <% }) %>
                                     <% } else { %>
                                         <tr>
-                                            <td colspan="4" class="text-center text-muted p-4">You have no tasks assigned in the active sprint.</td>
+                                            <td colspan="7" class="text-center text-muted p-4">You have no tasks assigned in the active sprint.</td>
                                         </tr>
                                     <% } %>
                                 </tbody>
