@@ -375,16 +375,23 @@ exports.getTeamDetailPage = async (req, res) => {
             const totalSprintDays = (sprintEndDate - sprintStartDate) / (1000 * 60 * 60 * 24) + 1;
             const idealBurnPerDay = activeSprint.capacity / (totalSprintDays > 0 ? totalSprintDays : 1);
 
+            const now = new Date();
+            now.setHours(23, 59, 59, 999);
+
             for (let d = new Date(sprintStartDate); d <= sprintEndDate; d.setDate(d.getDate() + 1)) {
-                if (d > new Date()) break;
                 labels.push(d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
                 const daysPassed = (d - sprintStartDate) / (1000 * 60 * 60 * 24);
-                idealData.push(Math.round(activeSprint.capacity - (daysPassed * idealBurnPerDay)));
-                const pointsCompletedOnThisDay = tasks.filter(task => task.status === 'Done' && new Date(task.updatedAt).toDateString() === d.toDateString()).reduce((sum, task) => sum + (task.storyPoints || 0), 0);
-                remainingPoints -= pointsCompletedOnThisDay;
-                actualData.push(remainingPoints);
+                let idealRemaining = Math.round(activeSprint.capacity - (daysPassed * idealBurnPerDay));
+                if (idealRemaining < 0) idealRemaining = 0;
+                idealData.push(idealRemaining);
+
+                if (d <= now) {
+                    const pointsCompletedOnThisDay = tasks.filter(task => task.status === 'Done' && new Date(task.updatedAt).toDateString() === d.toDateString()).reduce((sum, task) => sum + (task.storyPoints || 0), 0);
+                    remainingPoints -= pointsCompletedOnThisDay;
+                    actualData.push(remainingPoints);
+                }
             }
-            team.burndownChartData = { labels: JSON.stringify(labels), actualData: JSON.stringify(actualData), idealData: JSON.stringify(idealData) };
+            team.burndownChartData = { labels: labels, actualData: actualData, idealData: idealData };
         } else {
             // --- NEW: If no active sprint, fetch past sprints for context ---
             const pastSprints = await Sprint.find({ team: team._id, status: 'Completed' }).sort({ endDate: -1 }).limit(5);
@@ -395,7 +402,7 @@ exports.getTeamDetailPage = async (req, res) => {
             team.pastSprints = pastSprints;
         }
         
-        res.render('partials/team-detail', {
+        res.render('admin/team-detail', {
             title: `Team: ${team.name}`, 
             user: req.session.user,
             team, 

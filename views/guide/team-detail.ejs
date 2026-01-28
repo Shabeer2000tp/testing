@@ -1,12 +1,73 @@
 <%- include('../partials/_header.ejs', { title: title, user: user, sprintSetting: sprintSetting }) %>
 
 <div class="main-content">
-    <div class="welcome-header">
-        <h1>Team: <%= team.name %></h1>
-        <p>Guide: <%= team.guide.name %></p>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div class="welcome-header mb-0">
+            <h1>Team: <%= team.name %></h1>
+            <p class="mb-0">Guide: <%= team.guide.name %></p>
+        </div>
+        <div>
+            <a href="/guide/dashboard" class="btn btn-outline-secondary">
+                <i class="fas fa-home me-1"></i> Home
+            </a>
+        </div>
     </div>
 
     <%- include('../partials/_messages.ejs') %>
+
+    <!-- Guide Management Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <i class="fas fa-cogs me-2"></i>Team Management
+                </div>
+                <div class="card-body d-flex flex-wrap gap-3 align-items-center justify-content-between">
+                    
+                    <!-- 1. Task Assignment Permissions -->
+                    <form id="permissionForm" action="/guide/teams/<%= team._id %>/task-permission" method="POST" class="d-flex align-items-center gap-2 border-end pe-3">
+                        <label class="fw-bold mb-0 small">Task Permissions:</label>
+                        <select name="permission" id="permissionSelect" class="form-select form-select-sm" style="width: auto;">
+                            <option value="guide-only" <%= team.taskAssignmentPermission === 'guide-only' ? 'selected' : '' %>>Guide Only</option>
+                            <option value="guide-and-designated-student" <%= team.taskAssignmentPermission === 'guide-and-designated-student' ? 'selected' : '' %>>Guide & Task Master</option>
+                        </select>
+                        <select name="taskMaster" id="taskMasterSelect" class="form-select form-select-sm" style="width: auto; <%= team.taskAssignmentPermission === 'guide-and-designated-student' ? '' : 'display:none' %>">
+                            <option value="" disabled selected>Select Task Master</option>
+                            <% team.students.forEach(student => { %>
+                                <option value="<%= student._id %>" <%= team.taskMaster && team.taskMaster.equals(student._id) ? 'selected' : '' %>><%= student.name %></option>
+                            <% }) %>
+                        </select>
+                        <button type="submit" class="btn btn-sm btn-outline-primary">Save</button>
+                    </form>
+
+                    <!-- 2. Sprint & Task Actions -->
+                    <div class="d-flex gap-2">
+                        <a href="/guide/teams/<%= team._id %>/backlog" class="btn btn-info btn-sm text-white">
+                            <i class="fas fa-list me-1"></i> View Backlog
+                        </a>
+                        <a href="/guide/teams/<%= team._id %>/sprints" class="btn btn-warning btn-sm text-dark">
+                            <i class="fas fa-history me-1"></i> Manage Sprints
+                        </a>
+                        <button class="btn btn-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#addBacklogItemModal">
+                            <i class="fas fa-plus me-1"></i> Add to Backlog
+                        </button>
+                        <% if (!activeSprint) { %>
+                            <button class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#createSprintModal">
+                                <i class="fas fa-plus me-1"></i> Create Sprint
+                            </button>
+                        <% } else { %>
+                            <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#editSprintModal">
+                                <i class="fas fa-edit me-1"></i> Edit Sprint
+                            </button>
+                            <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createTaskModal">
+                                <i class="fas fa-plus me-1"></i> Assign Task
+                            </button>
+                        <% } %>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <% if (activeSprint) { %>
         <div class="row">
@@ -22,6 +83,7 @@
                                         <th>Assigned To</th>
                                         <th>Points</th>
                                         <th>Status</th>
+                                        <th>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -52,6 +114,22 @@
                                                     } else { __badgeText = 'On Track'; __badgeClass = 'status-on-track'; }
                                                 %>
                                                 <span class="status-badge <%= __badgeClass %>"><%= __badgeText %></span>
+                                            </td>
+                                            <td>
+                                                <button class="btn btn-sm btn-outline-secondary" 
+                                                    data-bs-toggle="modal" 
+                                                    data-bs-target="#editTaskModal"
+                                                    data-id="<%= task._id %>"
+                                                    data-description="<%= task.description %>"
+                                                    data-storypoints="<%= task.storyPoints %>"
+                                                    data-status="<%= task.status %>">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                <form action="/guide/tasks/<%= task._id %>/delete" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this task?');">
+                                                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </form>
                                             </td>
                                         </tr>
                                     <% }); %>
@@ -127,6 +205,199 @@
     <% } %>
 </div>
 
+<!-- Create Sprint Modal -->
+<div class="modal fade" id="createSprintModal" tabindex="-1">
+    <div class="modal-dialog">
+        <form action="/guide/teams/<%= team._id %>/sprint" method="POST" class="modal-content bg-white text-dark">
+            <div class="modal-header">
+                <h5 class="modal-title">Create New Sprint</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Sprint Name</label>
+                    <input type="text" name="name" class="form-control" required placeholder="e.g., Sprint 1">
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Start Date</label>
+                        <input type="date" name="startDate" class="form-control" required>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">End Date</label>
+                        <input type="date" name="endDate" class="form-control" required>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Capacity (Story Points)</label>
+                    <input type="number" name="capacity" class="form-control" required min="1">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Sprint Goal</label>
+                    <textarea name="goal" class="form-control" rows="2" required></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="submit" class="btn btn-primary">Create Sprint</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Edit Sprint Modal (Active Sprint) -->
+<% if (activeSprint) { %>
+<div class="modal fade" id="editSprintModal" tabindex="-1">
+    <div class="modal-dialog">
+        <form action="/guide/sprints/<%= activeSprint._id %>/edit" method="POST" class="modal-content bg-white text-dark">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Sprint: <%= activeSprint.name %></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Sprint Name</label>
+                    <input type="text" name="name" class="form-control" value="<%= activeSprint.name %>" required>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Start Date</label>
+                        <input type="date" name="startDate" class="form-control" value="<%= activeSprint.startDate.toISOString().split('T')[0] %>" required>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">End Date</label>
+                        <input type="date" name="endDate" class="form-control" value="<%= activeSprint.endDate.toISOString().split('T')[0] %>" required>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Capacity</label>
+                    <input type="number" name="capacity" class="form-control" value="<%= activeSprint.capacity %>" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Goal</label>
+                    <textarea name="goal" class="form-control" rows="2" required><%= activeSprint.goal %></textarea>
+                </div>
+                <input type="hidden" name="status" value="<%= activeSprint.status %>">
+            </div>
+            <div class="modal-footer">
+                <button type="submit" class="btn btn-primary">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+<% } %>
+
+<!-- Create Task Modal -->
+<% if (activeSprint) { %>
+<div class="modal fade" id="createTaskModal" tabindex="-1">
+    <div class="modal-dialog">
+        <form action="/guide/teams/<%= team._id %>/tasks" method="POST" class="modal-content bg-white text-dark">
+            <div class="modal-header">
+                <h5 class="modal-title">Assign New Task</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" name="sprintId" value="<%= activeSprint._id %>">
+                <div class="mb-3">
+                    <label class="form-label">Description</label>
+                    <input type="text" name="description" class="form-control" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Story Points</label>
+                    <input type="number" name="storyPoints" class="form-control" required min="1">
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Start Date</label>
+                        <input type="date" name="startDate" class="form-control" required value="<%= activeSprint.startDate.toISOString().split('T')[0] %>" min="<%= activeSprint.startDate.toISOString().split('T')[0] %>">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">End Date</label>
+                        <input type="date" name="endDate" class="form-control" required value="<%= activeSprint.endDate.toISOString().split('T')[0] %>" max="<%= activeSprint.endDate.toISOString().split('T')[0] %>">
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Assign To</label>
+                    <select name="assignedTo" class="form-select">
+                        <% team.students.forEach(student => { %>
+                            <option value="<%= student._id %>"><%= student.name %></option>
+                        <% }) %>
+                    </select>
+                    <div class="form-check mt-2">
+                        <input class="form-check-input" type="checkbox" name="assignedToAll" id="assignAll">
+                        <label class="form-check-label" for="assignAll">Assign to all members</label>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="submit" class="btn btn-primary">Assign Task</button>
+            </div>
+        </form>
+    </div>
+</div>
+<% } %>
+
+<!-- Edit Task Modal -->
+<div class="modal fade" id="editTaskModal" tabindex="-1">
+    <div class="modal-dialog">
+        <form id="editTaskForm" method="POST" class="modal-content bg-white text-dark">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Task</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Description</label>
+                    <input type="text" name="description" id="editTaskDescription" class="form-control" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Story Points</label>
+                    <input type="number" name="storyPoints" id="editTaskPoints" class="form-control" required min="1">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Status</label>
+                    <select name="status" id="editTaskStatus" class="form-select">
+                        <option value="To-Do">To-Do</option>
+                        <option value="In Progress">In Progress</option>
+                        <option value="Done">Done</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="submit" class="btn btn-primary">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Add Backlog Item Modal -->
+<div class="modal fade" id="addBacklogItemModal" tabindex="-1">
+    <div class="modal-dialog">
+        <form action="/guide/teams/<%= team._id %>/backlog" method="POST" class="modal-content bg-white text-dark">
+            <div class="modal-header">
+                <h5 class="modal-title">Add to Backlog</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Description</label>
+                    <textarea name="description" class="form-control" rows="3" required></textarea>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Priority</label>
+                    <select name="priority" class="form-select">
+                        <option value="High">High</option>
+                        <option value="Medium" selected>Medium</option>
+                        <option value="Low">Low</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="submit" class="btn btn-primary">Add Item</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
@@ -136,17 +407,17 @@
                 new Chart(ctx, {
                     type: 'line',
                     data: {
-                        labels: <%- team.burndownChartData.labels %>,
+                        labels: <%- JSON.stringify(team.burndownChartData.labels || []) %>,
                         datasets: [
                             {
                                 label: 'Remaining Work',
-                                data: <%- team.burndownChartData.actualData %>,
+                                data: <%- JSON.stringify(team.burndownChartData.actualData || []) %>,
                                 borderColor: 'rgb(75, 192, 192)',
                                 fill: true
                             },
                             {
                                 label: 'Ideal Pace',
-                                data: <%- team.burndownChartData.idealData %>,
+                                data: <%- JSON.stringify(team.burndownChartData.idealData || []) %>,
                                 borderColor: 'rgb(255, 99, 132)',
                                 borderDash: [5, 5],
                                 fill: false
@@ -156,6 +427,53 @@
                 });
             }
         <% } %>
+
+        // Permission Select Toggle Logic
+        const permissionSelect = document.getElementById('permissionSelect');
+        const taskMasterSelect = document.getElementById('taskMasterSelect');
+        if (permissionSelect && taskMasterSelect) {
+            permissionSelect.addEventListener('change', function() {
+                taskMasterSelect.style.display = (this.value === 'guide-and-designated-student') ? 'block' : 'none';
+            });
+        }
+
+        // Permission Form Validation
+        const permissionForm = document.getElementById('permissionForm');
+        if (permissionForm) {
+            permissionForm.addEventListener('submit', function(e) {
+                const permission = document.getElementById('permissionSelect').value;
+                const taskMaster = document.getElementById('taskMasterSelect').value;
+                
+                if (permission === 'guide-and-designated-student' && !taskMaster) {
+                    e.preventDefault();
+                    alert('Please select a student to be the Task Master.');
+                    return;
+                }
+                
+                if (!confirm('Are you sure you want to save the task permissions?')) {
+                    e.preventDefault();
+                }
+            });
+        }
+
+        // Edit Task Modal Logic
+        const editTaskModal = document.getElementById('editTaskModal');
+        if (editTaskModal) {
+            editTaskModal.addEventListener('show.bs.modal', function (event) {
+                const button = event.relatedTarget;
+                const id = button.getAttribute('data-id');
+                const description = button.getAttribute('data-description');
+                const points = button.getAttribute('data-storypoints');
+                const status = button.getAttribute('data-status');
+
+                const form = document.getElementById('editTaskForm');
+                form.action = '/guide/tasks/' + id + '/edit';
+
+                document.getElementById('editTaskDescription').value = description;
+                document.getElementById('editTaskPoints').value = points;
+                document.getElementById('editTaskStatus').value = status;
+            });
+        }
     });
 </script>
 

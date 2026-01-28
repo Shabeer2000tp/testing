@@ -1,0 +1,168 @@
+<%- include('../partials/_header.ejs', { title: title, user: user, sprintSetting: sprintSetting }) %>
+
+<div class="main-content">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1>Manage Sprints</h1>
+            <p class="text-muted">Team: <%= team.name %></p>
+        </div>
+        <div>
+            <button class="btn btn-success me-2" data-bs-toggle="modal" data-bs-target="#createSprintModal">
+                <i class="fas fa-plus me-1"></i> Create Sprint
+            </button>
+            <a href="/guide/teams/<%= team._id %>" class="btn btn-secondary me-2">
+                <i class="fas fa-arrow-left me-1"></i> Back to Team
+            </a>
+            <a href="/guide/dashboard" class="btn btn-outline-secondary">
+                <i class="fas fa-home me-1"></i> Home
+            </a>
+        </div>
+    </div>
+
+    <%- include('../partials/_messages.ejs') %>
+
+    <div class="card shadow-sm">
+        <div class="card-header bg-light">
+            <i class="fas fa-history me-2"></i>Sprint History
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Name</th>
+                            <th>Start Date</th>
+                            <th>End Date</th>
+                            <th>Status</th>
+                            <th>Capacity</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% if (sprints.length > 0) { %>
+                            <% sprints.forEach(sprint => { %>
+                                <tr>
+                                    <td><%= sprint.name %></td>
+                                    <td><%= new Date(sprint.startDate).toLocaleDateString() %></td>
+                                    <td><%= new Date(sprint.endDate).toLocaleDateString() %></td>
+                                    <td>
+                                        <% if (sprint.status === 'Active') { %>
+                                            <span class="badge bg-success">Active</span>
+                                        <% } else if (sprint.status === 'Completed') { %>
+                                            <span class="badge bg-secondary">Completed</span>
+                                        <% } else { %>
+                                            <span class="badge bg-warning text-dark"><%= sprint.status %></span>
+                                        <% } %>
+                                    </td>
+                                    <td><%= sprint.capacity %></td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary" 
+                                            data-bs-toggle="modal" 
+                                            data-bs-target="#editSprintModal-<%= sprint._id %>">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <form action="/guide/sprints/<%= sprint._id %>/delete" method="POST" class="d-inline" onsubmit="return confirm('Are you sure? This will delete the sprint.');">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+
+                                <!-- Edit Modal for this sprint -->
+                                <div class="modal fade" id="editSprintModal-<%= sprint._id %>" tabindex="-1">
+                                    <div class="modal-dialog">
+                                        <form action="/guide/sprints/<%= sprint._id %>/edit" method="POST" class="modal-content bg-white text-dark">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title">Edit Sprint</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <div class="mb-3">
+                                                    <label class="form-label">Name</label>
+                                                    <input type="text" name="name" class="form-control" value="<%= sprint.name %>" required>
+                                                </div>
+                                                <div class="row">
+                                                    <div class="col-6 mb-3">
+                                                        <label class="form-label">Start Date</label>
+                                                        <input type="date" name="startDate" class="form-control" value="<%= sprint.startDate.toISOString().split('T')[0] %>" required>
+                                                    </div>
+                                                    <div class="col-6 mb-3">
+                                                        <label class="form-label">End Date</label>
+                                                        <input type="date" name="endDate" class="form-control" value="<%= sprint.endDate.toISOString().split('T')[0] %>" required>
+                                                    </div>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label class="form-label">Capacity</label>
+                                                    <input type="number" name="capacity" class="form-control" value="<%= sprint.capacity %>" required>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label class="form-label">Status</label>
+                                                    <select name="status" class="form-select">
+                                                        <option value="Pending" <%= sprint.status === 'Pending' ? 'selected' : '' %>>Pending</option>
+                                                        <option value="Active" <%= sprint.status === 'Active' ? 'selected' : '' %>>Active</option>
+                                                        <option value="Completed" <%= sprint.status === 'Completed' ? 'selected' : '' %>>Completed</option>
+                                                    </select>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label class="form-label">Goal</label>
+                                                    <textarea name="goal" class="form-control" rows="2"><%= sprint.goal %></textarea>
+                                                </div>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="submit" class="btn btn-primary">Save Changes</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            <% }); %>
+                        <% } else { %>
+                            <tr><td colspan="6" class="text-center py-4 text-muted">No sprints found.</td></tr>
+                        <% } %>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create Sprint Modal (Reused from team detail logic) -->
+<div class="modal fade" id="createSprintModal" tabindex="-1">
+    <div class="modal-dialog">
+        <form action="/guide/teams/<%= team._id %>/sprint" method="POST" class="modal-content bg-white text-dark">
+            <div class="modal-header">
+                <h5 class="modal-title">Create New Sprint</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Sprint Name</label>
+                    <input type="text" name="name" class="form-control" required placeholder="e.g., Sprint 1">
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Start Date</label>
+                        <input type="date" name="startDate" class="form-control" required>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">End Date</label>
+                        <input type="date" name="endDate" class="form-control" required>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Capacity (Story Points)</label>
+                    <input type="number" name="capacity" class="form-control" required min="1">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Sprint Goal</label>
+                    <textarea name="goal" class="form-control" rows="2" required></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="submit" class="btn btn-primary">Create Sprint</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<%- include('../partials/_footer.ejs') %>

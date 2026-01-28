@@ -22,6 +22,7 @@
             <p>"<%= backlogItem.description %>"</p>
         </div>
 
+        <% if (canCreateTask) { %>
         <form action="/student/tasks" method="POST" style="margin-top: 2rem;">
             <input type="hidden" name="sprintId" value="<%= activeSprint._id %>">
             <input type="hidden" name="teamId" value="<%= team._id %>">
@@ -43,6 +44,18 @@
                 <label for="endDate">End Date</label>
                 <input type="date" name="endDate" required>
             </div>
+
+            <% if (user.role === 'guide') { %>
+            <div>
+                <label for="assignedTo">Assign To</label>
+                <select name="assignedTo" id="assignedTo">
+                    <% team.students.forEach(student => { %>
+                        <option value="<%= student._id %>"><%= student.name %></option>
+                    <% }); %>
+                </select>
+            </div>
+            <% } %>
+
             <div>
                 <label>
                     <input type="checkbox" name="assignToAll" value="true">
@@ -51,6 +64,11 @@
             </div>
             <button type="submit">Add Task to Sprint</button>
         </form>
+        <% } else { %>
+            <p style="margin-top: 2rem; color: #721c24; background-color: #f8d7da; border: 1px solid #f5c6cb; padding: .75rem 1.25rem; border-radius: .25rem;">
+                You do not have permission to create tasks for this team.
+            </p>
+        <% } %>
     </div>
 </body>
 </html>

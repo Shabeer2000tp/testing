@@ -542,8 +542,31 @@ exports.getDashboard = async (req, res) => {
 // --- TASK & DELIVERABLE MANAGEMENT ---
 exports.createTask = async (req, res) => {
     try {
-        const { description, storyPoints, sprintId, teamId, backlogItemId, startDate, endDate, assignToAll } = req.body;
+        const { description, storyPoints, sprintId, teamId, backlogItemId, startDate, endDate, assignToAll, assignedTo } = req.body;
         const errorRedirectPath = backlogItemId ? `/student/backlog/${backlogItemId}/plan` : '/student/dashboard';
+
+        // --- PERMISSION CHECK ---
+        const team = await Team.findById(teamId);
+        if (!team) {
+            req.flash('error_msg', 'Team not found.');
+            return res.redirect(errorRedirectPath);
+        }
+
+        const user = req.session.user;
+        const isGuide = user.role === 'guide';
+        const isTaskMaster = team.taskMaster && team.taskMaster.equals(user.profileId);
+
+        if (team.taskAssignmentPermission === 'guide-only' && !isGuide) {
+            req.flash('error_msg', 'Only the guide can assign tasks for this team.');
+            return res.redirect(errorRedirectPath);
+        }
+
+        if (team.taskAssignmentPermission === 'guide-and-designated-student' && !isGuide && !isTaskMaster) {
+            req.flash('error_msg', 'Only the guide or the designated task master can assign tasks.');
+            return res.redirect(errorRedirectPath);
+        }
+        // --- END PERMISSION CHECK ---
+
         const newStoryPoints = parseInt(storyPoints, 10);
 
         if (isNaN(newStoryPoints) || newStoryPoints <= 0) {
@@ -553,7 +576,7 @@ exports.createTask = async (req, res) => {
 
         // Validate dates
         const taskStartDate = new Date(startDate);
-        const taskEndDate = new Date(endDate);
+        const taskEndDate = new date(endDate);
         
         if (isNaN(taskStartDate.getTime()) || isNaN(taskEndDate.getTime())) {
             req.flash('error_msg', 'Please provide valid start and end dates.');
@@ -633,13 +656,17 @@ exports.createTask = async (req, res) => {
             await newTask.save();
             req.flash('success_msg', 'Task assigned to all team members!');
         } else {
+            let assignee = user.profileId; // Default to self-assignment for task master
+            if (isGuide && assignedTo) {
+                assignee = assignedTo; // Guide assigns to a specific student
+            }
             // Create single task assigned to current user
             const newTask = new Task({
                 description,
                 storyPoints: newStoryPoints,
                 sprint: sprintId,
                 team: teamId,
-                assignedTo: req.session.user.profileId,
+                assignedTo: assignee,
                 startDate: taskStartDate,
                 endDate: taskEndDate
             });
@@ -913,7 +940,7 @@ exports.getSprintPlanningPage = async (req, res) => {
 exports.getPlanTaskPage = async (req, res) => {
     try {
         const backlogItem = await BacklogItem.findById(req.params.id);
-        const team = await Team.findOne({ students: req.session.user.profileId });
+        const team = await Team.findOne({ students: req.session.user.profileId }).populate('students');
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
@@ -937,12 +964,27 @@ exports.getPlanTaskPage = async (req, res) => {
             req.flash('error_msg', 'Cannot plan task: a required item was not found.');
             return res.redirect('/student/sprint-planning');
         }
+
+        // --- PERMISSION CHECK ---
+        const user = req.session.user;
+        const isGuide = user.role === 'guide';
+        const isTaskMaster = team.taskMaster && team.taskMaster.equals(user.profileId);
+        let canCreateTask = false;
+        if (team.taskAssignmentPermission === 'guide-only' && isGuide) {
+            canCreateTask = true;
+        }
+        if (team.taskAssignmentPermission === 'guide-and-designated-student' && (isGuide || isTaskMaster)) {
+            canCreateTask = true;
+        }
+        // --- END PERMISSION CHECK ---
+
         res.render('student/plan-task', { 
             title: 'Plan Task', 
             user: req.session.user,
             backlogItem, 
             team, 
-            activeSprint 
+            activeSprint,
+            canCreateTask // Pass the flag to the view
         });
     } catch (error) {
         console.error(error);
@@ -1204,27 +1246,9 @@ exports.getSprintsPage = async (req, res) => {
 
 exports.createSprint = async (req, res) => {
     try {
-        const { name, startDate, endDate, capacity, teamId, goal } = req.body;
-
-        if (!name || !startDate || !endDate || !capacity || !teamId || !goal) {
-            req.flash('error_msg', 'Please fill in all fields.');
-            return res.redirect('/student/sprints');
-        }
-
-        const newSprint = new Sprint({
-            name,
-            startDate,
-            endDate,
-            capacity: parseInt(capacity, 10),
-            team: teamId,
-            goal: goal,
-            status: 'Pending'
-        });
-
-        await newSprint.save();
-
-        req.flash('success_msg', 'New sprint created successfully!');
-        res.redirect('/student/sprints');
+        // Sprint creation is now restricted to Guides only.
+        req.flash('error_msg', 'Only Guides are authorized to create Sprints.');
+        res.redirect('/student/dashboard');
     } catch (error) {
         console.error("Error creating sprint:", error);
         req.flash('error_msg', 'An error occurred while creating the sprint.');

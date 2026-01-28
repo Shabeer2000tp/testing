@@ -27,6 +27,11 @@ exports.getDashboard = async (req, res) => {
         let anySprintIsActive = false;
 
         for (const team of teams) {
+            // Initialize properties
+            team.sprintCapacity = 0;
+            team.completedStoryPoints = 0;
+            team.activeSprintName = 'None';
+
             let activeSprintForTeam;
 
             if (sprintSetting && sprintSetting.value === 'team') {
@@ -49,18 +54,15 @@ exports.getDashboard = async (req, res) => {
                 anySprintIsActive = true;
                 const tasks = await Task.find({ team: team._id, sprint: activeSprintForTeam._id });
                 
-                // --- THIS IS THE KEY CHANGE ---
-                // Use the sprint's total capacity for the progress bar total
                 team.sprintCapacity = activeSprintForTeam.capacity;
                 team.completedStoryPoints = tasks.filter(task => task.status === 'Done').reduce((sum, task) => sum + (task.storyPoints || 0), 0);
-                team.activeSprintName = activeSprintForTeam.name; // Add sprint name
+                team.activeSprintName = activeSprintForTeam.name;
             }
 
             const allCompletedTasks = await Task.find({ team: team._id, status: 'Done' });
             team.overallCompletedPoints = allCompletedTasks.reduce((sum, task) => sum + (task.storyPoints || 0), 0);
             team.overallTotalPoints = overallTotalPoints;
 
-            // --- FIX: Add project/domain name to team object ---
             const proposal = await Proposal.findOne({ team: team._id, status: 'Approved' }).populate('domain');
             team.projectTitle = proposal ? proposal.title : 'Untitled Project';
             team.domainName = proposal && proposal.domain ? proposal.domain.name : 'N/A';
@@ -221,19 +223,26 @@ exports.getTeamDetailPage = async (req, res) => {
             const totalSprintDays = (sprintEndDate - sprintStartDate) / (1000 * 60 * 60 * 24) + 1;
             const idealBurnPerDay = activeSprint.capacity / (totalSprintDays > 0 ? totalSprintDays : 1);
 
+            const now = new Date();
+            now.setHours(23, 59, 59, 999);
+
             for (let d = new Date(sprintStartDate); d <= sprintEndDate; d.setDate(d.getDate() + 1)) {
-                if (d > new Date()) break;
                 labels.push(d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
                 const daysPassed = (d - sprintStartDate) / (1000 * 60 * 60 * 24);
-                idealData.push(Math.round(activeSprint.capacity - (daysPassed * idealBurnPerDay)));
-                const pointsCompletedOnThisDay = tasks.filter(task => task.status === 'Done' && new Date(task.updatedAt).toDateString() === d.toDateString()).reduce((sum, task) => sum + (task.storyPoints || 0), 0);
-                remainingPoints -= pointsCompletedOnThisDay;
-                actualData.push(remainingPoints);
+                let idealRemaining = Math.round(activeSprint.capacity - (daysPassed * idealBurnPerDay));
+                if (idealRemaining < 0) idealRemaining = 0;
+                idealData.push(idealRemaining);
+
+                if (d <= now) {
+                    const pointsCompletedOnThisDay = tasks.filter(task => task.status === 'Done' && new Date(task.updatedAt).toDateString() === d.toDateString()).reduce((sum, task) => sum + (task.storyPoints || 0), 0);
+                    remainingPoints -= pointsCompletedOnThisDay;
+                    actualData.push(remainingPoints);
+                }
             }
-            team.burndownChartData = { labels: JSON.stringify(labels), actualData: JSON.stringify(actualData), idealData: JSON.stringify(idealData) };
+            team.burndownChartData = { labels: labels, actualData: actualData, idealData: idealData };
         }
         
-        res.render('partials/team-detail', { 
+        res.render('guide/team-detail', { 
             title: `Team: ${team.name}`, 
             user: req.session.user,
             team, 
@@ -252,19 +261,154 @@ exports.getTeamDetailPage = async (req, res) => {
 // --- PROPOSAL & LOG MANAGEMENT ---
 exports.getTeamBacklog = async (req, res) => {
     try {
-        const team = await Team.findOne({ _id: req.params.id, guide: req.session.user.profileId });
+        const team = await Team.findOne({ _id: req.params.id, guide: req.session.user.profileId }).populate('students');
         if (!team) {
             req.flash('error_msg', 'Team not found or you are not assigned to it.');
             return res.redirect('/guide/dashboard');
         }
         const backlogItems = await BacklogItem.find({ team: team._id });
-        res.render('guide/view-backlog', { title: `Backlog: ${team.name}`, team, backlogItems });
+        const sprintSetting = await Setting.findOne({ key: 'sprintCreation' });
+
+        // Sync Backlog Item status with Task status
+        // If an item is 'In Sprint' but the corresponding task is 'Done', mark item as 'Completed'
+        const teamTasks = await Task.find({ team: team._id });
+        for (const item of backlogItems) {
+            if (item.status === 'In Sprint') {
+                // Find a task with the same description that is Done
+                const completedTask = teamTasks.find(t => t.description === item.description && t.status === 'Done');
+                if (completedTask) {
+                    item.status = 'Completed';
+                    await item.save();
+                }
+            }
+        }
+
+        const startOfToday = new Date();
+        startOfToday.setHours(0, 0, 0, 0);
+        const endOfToday = new Date();
+        endOfToday.setHours(23, 59, 59, 999);
+
+        let activeSprint;
+        if (sprintSetting && sprintSetting.value === 'team') {
+            activeSprint = await Sprint.findOne({
+                team: team._id,
+                startDate: { $lte: endOfToday },
+                endDate: { $gte: startOfToday },
+                status: { $in: ['Active', 'Pending'] }
+            });
+        } else {
+            activeSprint = await Sprint.findOne({
+                team: { $exists: false },
+                startDate: { $lte: endOfToday },
+                endDate: { $gte: startOfToday },
+                status: { $in: ['Active', 'Pending'] }
+            });
+        }
+
+        res.render('guide/view-backlog', { 
+            title: `Backlog: ${team.name}`, 
+            team, 
+            backlogItems,
+            user: req.session.user,
+            sprintSetting: sprintSetting || { value: 'global' },
+            activeSprint
+        });
     } catch (error) {
         console.error(error);
         req.flash('error_msg', 'Could not load team backlog.');
         res.redirect('/guide/dashboard');
     }
 };
+
+exports.postCreateBacklogItem = async (req, res) => {
+    try {
+        const { description, priority } = req.body;
+        const teamId = req.params.id;
+
+        if (!description || !priority) {
+            req.flash('error_msg', 'Please provide a description and priority.');
+            return res.redirect(`/guide/teams/${teamId}/backlog`);
+        }
+
+        const newItem = new BacklogItem({ description, priority, team: teamId, status: 'New' });
+        await newItem.save();
+
+        req.flash('success_msg', 'Backlog item added successfully.');
+        res.redirect(`/guide/teams/${teamId}/backlog`);
+    } catch (error) {
+        console.error("Error creating backlog item:", error);
+        req.flash('error_msg', 'Failed to add backlog item.');
+        res.redirect(`/guide/teams/${req.params.id}/backlog`);
+    }
+};
+
+exports.postCreateBacklogItemAndSprintTask = async (req, res) => {
+    try {
+        const { description, priority, storyPoints, assignedTo, startDate, endDate, sprintId, assignedToAll } = req.body;
+        const teamId = req.params.id;
+
+        // 1. Create Backlog Item
+        const newItem = new BacklogItem({ 
+            description, 
+            priority, 
+            team: teamId, 
+            status: 'In Sprint' 
+        });
+        await newItem.save();
+
+        // 2. Create Task
+        const newTaskData = {
+            description,
+            storyPoints: parseInt(storyPoints, 10),
+            sprint: sprintId,
+            team: teamId,
+            startDate: new Date(startDate),
+            endDate: new Date(endDate),
+            status: 'To-Do'
+        };
+
+        if (assignedToAll === 'on') {
+            newTaskData.assignedToAll = true;
+        } else {
+            newTaskData.assignedTo = assignedTo;
+        }
+        
+        await new Task(newTaskData).save();
+
+        req.flash('success_msg', 'Item created and added to sprint successfully.');
+        res.redirect(`/guide/teams/${teamId}/backlog`);
+    } catch (error) {
+        console.error("Error creating item and task:", error);
+        req.flash('error_msg', 'Failed to create item and task.');
+        res.redirect(`/guide/teams/${req.params.id}/backlog`);
+    }
+};
+
+exports.postEditBacklogItem = async (req, res) => {
+    try {
+        const { description, priority } = req.body;
+        await BacklogItem.findByIdAndUpdate(req.params.itemId, { description, priority });
+        req.flash('success_msg', 'Backlog item updated.');
+        res.redirect(`/guide/teams/${req.params.id}/backlog`);
+    } catch (error) {
+        console.error("Error updating backlog item:", error);
+        req.flash('error_msg', 'Failed to update backlog item.');
+        res.redirect(`/guide/teams/${req.params.id}/backlog`);
+    }
+};
+
+exports.postDeleteBacklogItem = async (req, res) => {
+    try {
+        await BacklogItem.findByIdAndDelete(req.params.itemId);
+        req.flash('success_msg', 'Backlog item deleted.');
+        res.redirect(`/guide/teams/${req.params.id}/backlog`);
+    } catch (error) {
+        console.error("Error deleting backlog item:", error);
+        req.flash('error_msg', 'Failed to delete backlog item.');
+        res.redirect(`/guide/teams/${req.params.id}/backlog`);
+    }
+};
+
 exports.getProposalsPage = async (req, res) => {
     try {
         const teams = await Team.find({ guide: req.session.user.profileId });
@@ -573,5 +717,191 @@ exports.postAddRemark = async (req, res) => {
         console.error("Error adding remark:", error);
         req.flash('error_msg', 'An error occurred while submitting your remarks.');
         res.redirect(`/guide/reviews/${req.params.id}`);
+    }
+};
+
+exports.setTaskPermission = async (req, res) => {
+    try {
+        const { permission, taskMaster } = req.body;
+        const teamId = req.params.id;
+        const guideId = req.session.user.profileId;
+
+        const team = await Team.findOne({ _id: teamId, guide: guideId });
+
+        if (!team) {
+            req.flash('error_msg', 'Team not found or you are not authorized.');
+            return res.redirect('/guide/dashboard');
+        }
+
+        team.taskAssignmentPermission = permission;
+        if (permission === 'guide-and-designated-student') {
+            team.taskMaster = taskMaster;
+        } else {
+            team.taskMaster = undefined;
+        }
+
+        await team.save();
+
+        req.flash('success_msg', 'Task assignment permissions updated successfully.');
+        res.redirect(`/guide/teams/${teamId}`);
+    } catch (error) {
+        console.error("Error setting task permission:", error);
+        req.flash('error_msg', 'An error occurred while updating permissions.');
+        res.redirect('/guide/dashboard');
+    }
+};
+
+exports.postCreateSprint = async (req, res) => {
+    try {
+        const { name, startDate, endDate, capacity, goal } = req.body;
+        const teamId = req.params.id;
+
+        if (!name || !startDate || !endDate || !capacity || !goal) {
+            req.flash('error_msg', 'Please fill in all fields.');
+            return res.redirect(`/guide/teams/${teamId}`);
+        }
+
+        // Check for existing active sprint to prevent duplicates
+        const existingSprint = await Sprint.findOne({ 
+            team: teamId, 
+            status: { $in: ['Active', 'Pending'] } 
+        });
+        if (existingSprint) {
+            req.flash('error_msg', 'There is already an active or pending sprint for this team.');
+            return res.redirect(`/guide/teams/${teamId}`);
+        }
+
+        const newSprint = new Sprint({
+            name,
+            startDate,
+            endDate,
+            capacity: parseInt(capacity, 10),
+            team: teamId,
+            goal,
+            status: 'Active' // Guide created sprints are Active by default
+        });
+
+        await newSprint.save();
+        req.flash('success_msg', 'Sprint created successfully.');
+        res.redirect(`/guide/teams/${teamId}`);
+    } catch (error) {
+        console.error("Error creating sprint:", error);
+        req.flash('error_msg', 'Failed to create sprint.');
+        res.redirect(`/guide/teams/${req.params.id}`);
+    }
+};
+
+exports.postCreateTask = async (req, res) => {
+    try {
+        const { description, storyPoints, assignedTo, startDate, endDate, sprintId, assignedToAll, backlogItemId } = req.body;
+        const teamId = req.params.id;
+
+        const newTaskData = {
+            description,
+            storyPoints: parseInt(storyPoints, 10),
+            sprint: sprintId,
+            team: teamId,
+            startDate: new Date(startDate),
+            endDate: new Date(endDate),
+            status: 'To-Do'
+        };
+
+        if (assignedToAll === 'on') {
+            newTaskData.assignedToAll = true;
+            // Logic to assign to all could be handled here or by creating a task marked 'assignedToAll'
+            // For simplicity, we create one task record marked as assignedToAll
+            await new Task(newTaskData).save();
+        } else {
+            newTaskData.assignedTo = assignedTo;
+            await new Task(newTaskData).save();
+        }
+
+        if (backlogItemId) {
+            await BacklogItem.findByIdAndUpdate(backlogItemId, { status: 'In Sprint' });
+        }
+
+        req.flash('success_msg', 'Task assigned successfully.');
+        res.redirect(`/guide/teams/${teamId}`);
+    } catch (error) {
+        console.error("Error creating task:", error);
+        req.flash('error_msg', 'Failed to assign task.');
+        res.redirect(`/guide/teams/${req.params.id}`);
+    }
+};
+
+exports.postEditTask = async (req, res) => {
+    try {
+        const { description, storyPoints, status } = req.body;
+        await Task.findByIdAndUpdate(req.params.taskId, { description, storyPoints, status });
+        req.flash('success_msg', 'Task updated.');
+        res.redirect('back');
+    } catch (error) {
+        console.error(error);
+        req.flash('error_msg', 'Failed to update task.');
+        res.redirect('back');
+    }
+};
+
+exports.postDeleteTask = async (req, res) => {
+    try {
+        await Task.findByIdAndDelete(req.params.id);
+        req.flash('success_msg', 'Task deleted successfully.');
+        res.redirect('back');
+    } catch (error) {
+        console.error("Error deleting task:", error);
+        req.flash('error_msg', 'Failed to delete task.');
+        res.redirect('back');
+    }
+};
+
+exports.getSprintsPage = async (req, res) => {
+    try {
+        const team = await Team.findById(req.params.id);
+        if (!team) {
+            req.flash('error_msg', 'Team not found.');
+            return res.redirect('/guide/dashboard');
+        }
+        
+        const sprints = await Sprint.find({ team: team._id }).sort({ startDate: -1 });
+        const sprintSetting = await Setting.findOne({ key: 'sprintCreation' });
+
+        res.render('guide/manage-sprints', {
+            title: `Manage Sprints - ${team.name}`,
+            user: req.session.user,
+            team,
+            sprints,
+            sprintSetting: sprintSetting || { value: 'global' }
+        });
+    } catch (error) {
+        console.error("Error loading sprints page:", error);
+        req.flash('error_msg', 'Could not load sprints.');
+        res.redirect(`/guide/teams/${req.params.id}`);
+    }
+};
+
+exports.postEditSprint = async (req, res) => {
+    try {
+        const { name, startDate, endDate, capacity, goal, status } = req.body;
+        await Sprint.findByIdAndUpdate(req.params.sprintId, {
+            name, startDate, endDate, capacity, goal, status
+        });
+        req.flash('success_msg', 'Sprint updated successfully.');
+        res.redirect('back');
+    } catch (error) {
+        console.error("Error updating sprint:", error);
+        req.flash('error_msg', 'Failed to update sprint.');
+        res.redirect('back');
+    }
+};
+
+exports.postDeleteSprint = async (req, res) => {
+    try {
+        await Sprint.findByIdAndDelete(req.params.sprintId);
+        req.flash('success_msg', 'Sprint deleted successfully.');
+        res.redirect('back');
+    } catch (error) {
+        console.error("Error deleting sprint:", error);
+        req.flash('error_msg', 'Failed to delete sprint.');
+        res.redirect('back');
     }
 };

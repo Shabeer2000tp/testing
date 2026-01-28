@@ -60,6 +60,53 @@
     </div>
 </div>
 
+<% if (user.role === 'guide' && team.guide._id.equals(user.profileId)) { %>
+<div class="row">
+    <div class="col-lg-12">
+        <div class="card mb-4">
+            <div class="card-header">
+                <i class="fas fa-tasks me-2"></i> Task Assignment Permissions
+            </div>
+            <div class="card-body">
+                <form action="/guide/teams/<%= team._id %>/task-permission" method="POST">
+                    <div class="mb-3">
+                        <label for="permission" class="form-label">Permission Level</label>
+                        <select class="form-select" id="permission" name="permission">
+                            <option value="guide-only" <%= team.taskAssignmentPermission === 'guide-only' ? 'selected' : '' %>>Guide Only</option>
+                            <option value="guide-and-designated-student" <%= team.taskAssignmentPermission === 'guide-and-designated-student' ? 'selected' : '' %>>Guide and Designated Student</option>
+                        </select>
+                    </div>
+                    <div class="mb-3" id="task-master-select" style="display: <%= team.taskAssignmentPermission === 'guide-and-designated-student' ? 'block' : 'none' %>;">
+                        <label for="taskMaster" class="form-label">Designated Task Master</label>
+                        <select class="form-select" id="taskMaster" name="taskMaster">
+                            <% team.students.forEach(student => { %>
+                                <option value="<%= student._id %>" <%= team.taskMaster && team.taskMaster.equals(student._id) ? 'selected' : '' %>><%= student.name %></option>
+                            <% }); %>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Save Permissions</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const permissionSelect = document.getElementById('permission');
+        if(permissionSelect) {
+            permissionSelect.addEventListener('change', function() {
+                if (this.value === 'guide-and-designated-student') {
+                    document.getElementById('task-master-select').style.display = 'block';
+                } else {
+                    document.getElementById('task-master-select').style.display = 'none';
+                }
+            });
+        }
+    });
+</script>
+<% } %>
+
 <% if (activeSprint) { %>
 <div class="row">
 
@@ -109,84 +156,9 @@
             </div>
         </div>
     </div>
-
-    <!-- Right Column -->
-    <div class="col-lg-5">
-        <div class="card">
-            <div class="card-header">
-                <ul class="nav nav-tabs card-header-tabs" id="teamDetailTabs" role="tablist">
-                    <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tasks">Tasks</button></li>
-                    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#logs">Daily Logs</button></li>
-                    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#deliverables">Deliverables</button></li>
-                </ul>
-            </div>
-
-            <div class="card-body p-0">
-                <div class="tab-content">
-
-                    <!-- Tasks -->
-                    <div class="tab-pane fade show active" id="tasks">
-                        <div class="table-responsive">
-                            <table class="table table-hover mb-0">
-                                <thead><tr><th>Task</th><th>Assigned To</th><th>Status</th><th>Points</th></tr></thead>
-                                <tbody>
-                                <% if (team.tasks && team.tasks.length > 0) { %>
-                                    <% team.tasks.forEach(task => { %>
-                                        <tr>
-                                            <td><%= task.description %></td>
-                                            <td><%= task.assignedTo ? task.assignedTo.name : 'Unassigned' %></td>
-                                            <td><span class="status-badge <%= task.realtimeStatus.badgeClass %>"><%= task.realtimeStatus.text %></span></td>
-                                            <td><span class="badge bg-secondary"><%= task.storyPoints %></span></td>
-                                        </tr>
-                                    <% }) %>
-                                <% } else { %>
-                                    <tr><td colspan="4" class="text-center text-muted p-4">No tasks in this sprint.</td></tr>
-                                <% } %>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-
-                    <!-- Logs -->
-                    <div class="tab-pane fade" id="logs" style="max-height:450px; overflow-y:auto;">
-                        <div class="list-group list-group-flush">
-                        <% if (dailyLogs && dailyLogs.length > 0) { %>
-                            <% dailyLogs.forEach(log => { %>
-                                <div class="list-group-item">
-                                    <p class="mb-1"><%= log.logContent %></p>
-                                    <small class="text-muted d-block"><%= log.student.name %> on <%= new Date(log.createdAt).toLocaleDateString() %></small>
-                                </div>
-                            <% }); %>
-                        <% } else { %>
-                            <div class="text-center text-muted p-4">No daily logs.</div>
-                        <% } %>
-                        </div>
-                    </div>
-
-                    <!-- Deliverables -->
-                    <div class="tab-pane fade" id="deliverables">
-                        <div class="list-group list-group-flush">
-                        <% if (deliverables && deliverables.length > 0) { %>
-                            <% deliverables.forEach(file => { %>
-                                <div class="list-group-item d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <a href="/deliverables/download/<%= file._id %>" class="fw-bold"><i class="fas fa-file-alt me-2"></i><%= file.fileName %></a>
-                                        <small class="d-block text-muted">Uploaded by: <%= file.uploadedBy.name %></small>
-                                    </div>
-                                    <a href="/deliverables/download/<%= file._id %>" class="btn btn-sm btn-outline-secondary"><i class="fas fa-download"></i></a>
-                                </div>
-                            <% }); %>
-                        <% } else { %>
-                            <div class="text-center text-muted p-4">No deliverables uploaded.</div>
-                        <% } %>
-                        </div>
-                    </div>
-
-                </div>
-            </div>
-        </div>
-    </div>
-
+    
+    <!-- ... (rest of the right column) ... -->
+    
 </div>
 
 <% } else { %>
@@ -195,18 +167,19 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-<% if (activeSprint && team.burndownChartData) { %>
+
+    <% if (activeSprint && team.burndownChartData) { %>
     new Chart(document.getElementById('burndownChart'), {
         type: 'line',
         data: {
-            labels: <%- team.burndownChartData.labels %>,
+            labels: <%- JSON.stringify(team.burndownChartData.labels) %>,
             datasets: [
-                { label:'Remaining Work', data:<%- team.burndownChartData.actualData %>, borderColor:'#A29BFE', fill:true },
-                { label:'Ideal Pace', data:<%- team.burndownChartData.idealData %>, borderColor:'#ccc', borderDash:[5,5], fill:false }
+                { label:'Remaining Work', data:<%- JSON.stringify(team.burndownChartData.actualData) %>, borderColor:'#A29BFE', fill:true },
+                { label:'Ideal Pace', data:<%- JSON.stringify(team.burndownChartData.idealData) %>, borderColor:'#ccc', borderDash:[5,5], fill:false }
             ]
         },
         options:{ responsive:true, maintainAspectRatio:false }
     });
-<% } %>
+    <% } %>
 });
 </script>

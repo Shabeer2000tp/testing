@@ -9,6 +9,10 @@ router.get('/teams/:id', isLoggedIn, guideController.getTeamDetailPage);
 // @route   GET /guide/teams/:id/backlog
 // @desc    View the backlog for an assigned team
 router.get('/teams/:id/backlog', isLoggedIn, guideController.getTeamBacklog);
+router.post('/teams/:id/backlog', isLoggedIn, guideController.postCreateBacklogItem);
+router.post('/teams/:id/backlog/add-to-sprint', isLoggedIn, guideController.postCreateBacklogItemAndSprintTask);
+router.post('/teams/:id/backlog/:itemId/edit', isLoggedIn, guideController.postEditBacklogItem);
+router.post('/teams/:id/backlog/:itemId/delete', isLoggedIn, guideController.postDeleteBacklogItem);
 // @route   GET /guide/proposals
 // @desc    View and manage proposals for assigned teams
 router.get('/proposals', isLoggedIn, guideController.getProposalsPage);
@@ -41,5 +45,18 @@ router.get('/notifications', isLoggedIn, guideController.getNotificationsPage);
 router.get('/notifications/:id', isLoggedIn, guideController.getNotificationDetailPage);
 router.post('/notifications/:id/read', isLoggedIn, guideController.postMarkNotificationAsRead);
 router.post('/notifications/mark-all-read', isLoggedIn, guideController.postMarkAllRead);
+
+router.post('/teams/:id/task-permission', isLoggedIn, guideController.setTaskPermission);
+router.post('/teams/:id/permissions', isLoggedIn, guideController.setTaskPermission);
+
+// Sprint and Task Management Routes
+router.post('/teams/:id/sprint', isLoggedIn, guideController.postCreateSprint);
+router.post('/teams/:id/tasks', isLoggedIn, guideController.postCreateTask);
+router.post('/tasks/:taskId/edit', isLoggedIn, guideController.postEditTask);
+router.post('/tasks/:id/delete', isLoggedIn, guideController.postDeleteTask);
+
+router.get('/teams/:id/sprints', isLoggedIn, guideController.getSprintsPage);
+router.post('/sprints/:sprintId/edit', isLoggedIn, guideController.postEditSprint);
+router.post('/sprints/:sprintId/delete', isLoggedIn, guideController.postDeleteSprint);
 
 module.exports = router;

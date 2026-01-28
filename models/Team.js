@@ -27,6 +27,15 @@ const teamSchema = new Schema({
         enum: ['Active', 'Completed', 'Archived'],
         default: 'Active'
     },
+    taskAssignmentPermission: {
+        type: String,
+        enum: ['guide-only', 'guide-and-designated-student'],
+        default: 'guide-only'
+    },
+    taskMaster: {
+        type: Schema.Types.ObjectId,
+        ref: 'Student'
+    },
      velocityHistory: [{
         sprintName: String,
         completedPoints: Number
