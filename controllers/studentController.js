@@ -1,5 +1,6 @@
 // --- IMPORTS ---
 const Team = require('../models/Team');
+const Student = require('../models/Student');
 const Sprint = require('../models/Sprint');
 const Task = require('../models/Task');
 const BacklogItem = require('../models/BacklogItem');
@@ -12,6 +13,8 @@ const { getTaskStatusInfo } = require('../helpers/taskHelper');
 const Reminder = require('../models/Reminder');
 const Notification = require('../models/Notification');
 const Review = require('../models/Review');
+const Login = require('../models/Login');
+const bcrypt = require('bcryptjs');
 
 // --- DASHBOARD ---
 // exports.getDashboard = async (req, res) => {
@@ -278,8 +281,13 @@ exports.getDashboard = async (req, res) => {
         }
 
         if (team) {
-            const allSprints = await Sprint.find({});
-            overallTotalPoints = allSprints.reduce((sum, sprint) => sum + (sprint.capacity || 0), 0);
+            let projectSprints = [];
+            if (sprintSetting && sprintSetting.value === 'team') {
+                projectSprints = await Sprint.find({ team: team._id });
+            } else {
+                projectSprints = await Sprint.find({ team: { $exists: false } });
+            }
+            overallTotalPoints = projectSprints.reduce((sum, sprint) => sum + (sprint.capacity || 0), 0);
             
             const allCompletedTasks = await Task.find({ team: team._id, status: 'Done' });
             overallCompletedPoints = allCompletedTasks.reduce((sum, task) => sum + (task.storyPoints || 0), 0);
@@ -348,7 +356,7 @@ exports.getDashboard = async (req, res) => {
                 teamTasks = groupedTasks;
                 
                 totalStoryPoints = activeSprint.capacity || 0; 
-                completedStoryPoints = teamTasks.filter(task => task.status === 'Done').reduce((sum, task) => sum + (task.storyPoints || 0), 0);
+                completedStoryPoints = allTasks.filter(task => task.status === 'Done').reduce((sum, task) => sum + (task.storyPoints || 0), 0);
                 
                 // Burndown Chart Logic
                 const sprintStartDate = new Date(activeSprint.startDate);
@@ -358,14 +366,21 @@ exports.getDashboard = async (req, res) => {
                 const totalSprintDays = (sprintEndDate - sprintStartDate) / (1000 * 60 * 60 * 24) + 1;
                 const idealBurnPerDay = activeSprint.capacity / (totalSprintDays > 0 ? totalSprintDays : 1);
 
+                const now = new Date();
+                now.setHours(23, 59, 59, 999);
+
                 for (let d = new Date(sprintStartDate); d <= sprintEndDate; d.setDate(d.getDate() + 1)) {
-                    if (d > today) break;
                     labels.push(d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
                     const daysPassed = (d - sprintStartDate) / (1000 * 60 * 60 * 24);
-                    idealData.push(Math.round(activeSprint.capacity - (daysPassed * idealBurnPerDay)));
-                    const pointsCompletedOnThisDay = teamTasks.filter(task => task.status === 'Done' && new Date(task.updatedAt).toDateString() === d.toDateString()).reduce((sum, task) => sum + (task.storyPoints || 0), 0);
-                    remainingPoints -= pointsCompletedOnThisDay;
-                    actualData.push(remainingPoints);
+                    let idealRemaining = Math.round(activeSprint.capacity - (daysPassed * idealBurnPerDay));
+                    if (idealRemaining < 0) idealRemaining = 0;
+                    idealData.push(idealRemaining);
+
+                    if (d <= now) {
+                        const pointsCompletedOnThisDay = allTasks.filter(task => task.status === 'Done' && new Date(task.updatedAt).toDateString() === d.toDateString()).reduce((sum, task) => sum + (task.storyPoints || 0), 0);
+                        remainingPoints -= pointsCompletedOnThisDay;
+                        actualData.push(remainingPoints);
+                    }
                 }
                 burndownChartData = {
                     labels: JSON.stringify(labels),
@@ -553,6 +568,14 @@ exports.createTask = async (req, res) => {
         }
 
         const user = req.session.user;
+
+        // Verify that the student is actually a member of this team
+        const isMember = team.students.some(s => s.toString() === user.profileId.toString());
+        if (!isMember) {
+            req.flash('error_msg', 'You are not a member of this team.');
+            return res.redirect(errorRedirectPath);
+        }
+
         const isGuide = user.role === 'guide';
         const isTaskMaster = team.taskMaster && team.taskMaster.equals(user.profileId);
 
@@ -570,13 +593,13 @@ exports.createTask = async (req, res) => {
         const newStoryPoints = parseInt(storyPoints, 10);
 
         if (isNaN(newStoryPoints) || newStoryPoints <= 0) {
-            req.flash('error_msg', 'Story Points must be a valid number greater than 0.');
+            req.flash('error_msg', 'Hours must be a valid number greater than 0.');
             return res.redirect(errorRedirectPath);
         }
 
         // Validate dates
         const taskStartDate = new Date(startDate);
-        const taskEndDate = new date(endDate);
+        const taskEndDate = new Date(endDate);
         
         if (isNaN(taskStartDate.getTime()) || isNaN(taskEndDate.getTime())) {
             req.flash('error_msg', 'Please provide valid start and end dates.');
@@ -657,8 +680,8 @@ exports.createTask = async (req, res) => {
             req.flash('success_msg', 'Task assigned to all team members!');
         } else {
             let assignee = user.profileId; // Default to self-assignment for task master
-            if (isGuide && assignedTo) {
-                assignee = assignedTo; // Guide assigns to a specific student
+            if ((isGuide || isTaskMaster) && assignedTo) {
+                assignee = assignedTo; // Guide or Task Master assigns to a specific student
             }
             // Create single task assigned to current user
             const newTask = new Task({
@@ -1223,6 +1246,15 @@ exports.getSprintsPage = async (req, res) => {
             return res.redirect('/student/dashboard');
         }
 
+        // --- PERMISSION CHECK ---
+        const isTaskMaster = team.taskMaster && team.taskMaster.equals(studentId);
+        const hasPermission = team.taskAssignmentPermission === 'guide-and-designated-student' && isTaskMaster;
+
+        if (!hasPermission) {
+            req.flash('error_msg', 'You do not have permission to manage sprints.');
+            return res.redirect('/student/dashboard');
+        }
+
         let sprints = [];
         const sprintSetting = await Setting.findOne({ key: 'sprintCreation' });
 
@@ -1249,12 +1281,112 @@ exports.createSprint = async (req, res) => {
         // Sprint creation is now restricted to Guides only.
         req.flash('error_msg', 'Only Guides are authorized to create Sprints.');
         res.redirect('/student/dashboard');
+        const studentId = req.session.user.profileId;
+        const team = await Team.findOne({ students: studentId });
+
+        if (!team) {
+            return res.redirect('/student/dashboard');
+        }
+
+        // --- PERMISSION CHECK ---
+        const isTaskMaster = team.taskMaster && team.taskMaster.equals(studentId);
+        const hasPermission = team.taskAssignmentPermission === 'guide-and-designated-student' && isTaskMaster;
+
+        if (!hasPermission) {
+            req.flash('error_msg', 'Only the Guide or designated Task Master can create sprints.');
+            return res.redirect('/student/dashboard');
+        }
+
+        const { name, startDate, endDate, capacity, goal } = req.body;
+
+        if (!name || !startDate || !endDate || !capacity || !goal) {
+            req.flash('error_msg', 'Please fill in all fields.');
+            return res.redirect('/student/sprints');
+        }
+
+        const newSprint = new Sprint({
+            name,
+            startDate,
+            endDate,
+            capacity: parseInt(capacity, 10),
+            team: team._id,
+            goal,
+            status: 'Active'
+        });
+
+        await newSprint.save();
+
+        req.flash('success_msg', 'New sprint created successfully!');
+        res.redirect('/student/sprints');
     } catch (error) {
         console.error("Error creating sprint:", error);
         req.flash('error_msg', 'An error occurred while creating the sprint.');
         res.redirect('/student/sprints');
     }
 };
+
+exports.postEditSprint = async (req, res) => {
+    try {
+        const studentId = req.session.user.profileId;
+        const team = await Team.findOne({ students: studentId });
+
+        if (!team) {
+            return res.redirect('/student/dashboard');
+        }
+
+        // --- PERMISSION CHECK ---
+        const isTaskMaster = team.taskMaster && team.taskMaster.equals(studentId);
+        const hasPermission = team.taskAssignmentPermission === 'guide-and-designated-student' && isTaskMaster;
+
+        if (!hasPermission) {
+            req.flash('error_msg', 'You do not have permission to edit sprints.');
+            return res.redirect('/student/dashboard');
+        }
+
+        const { name, startDate, endDate, capacity, goal, status } = req.body;
+
+        await Sprint.findOneAndUpdate(
+            { _id: req.params.sprintId, team: team._id },
+            { name, startDate, endDate, capacity, goal, status }
+        );
+
+        req.flash('success_msg', 'Sprint updated successfully.');
+        res.redirect('/student/sprints');
+    } catch (error) {
+        console.error("Error updating sprint:", error);
+        req.flash('error_msg', 'Failed to update sprint.');
+        res.redirect('/student/sprints');
+    }
+};
+
+exports.postDeleteSprint = async (req, res) => {
+    try {
+        const studentId = req.session.user.profileId;
+        const team = await Team.findOne({ students: studentId });
+
+        if (!team) {
+            return res.redirect('/student/dashboard');
+        }
+
+        // --- PERMISSION CHECK ---
+        const isTaskMaster = team.taskMaster && team.taskMaster.equals(studentId);
+        const hasPermission = team.taskAssignmentPermission === 'guide-and-designated-student' && isTaskMaster;
+
+        if (!hasPermission) {
+            req.flash('error_msg', 'You do not have permission to delete sprints.');
+            return res.redirect('/student/sprints');
+        }
+
+        await Sprint.findOneAndDelete({ _id: req.params.sprintId, team: team._id });
+        req.flash('success_msg', 'Sprint deleted successfully.');
+        res.redirect('/student/sprints');
+    } catch (error) {
+        console.error("Error deleting sprint:", error);
+        req.flash('error_msg', 'Failed to delete sprint.');
+        res.redirect('/student/sprints');
+    }
+};
+
 // Add Reminder to the top of your controller imports if not already there
 
 
@@ -1436,5 +1568,72 @@ exports.postMarkAllRead = async (req, res) => {
         console.error('Error marking all notifications as read:', error);
         req.flash('error_msg', 'An error occurred.');
         res.redirect('/student/notifications');
+    }
+};
+
+exports.getSettingsPage = async (req, res) => {
+    try {
+        const sprintSetting = await Setting.findOne({ key: 'sprintCreation' });
+        res.render('student/settings', {
+            title: 'Settings',
+            user: req.session.user,
+            sprintSetting: sprintSetting || { value: 'global' }
+        });
+    } catch (error) {
+        console.error("Error loading settings page:", error);
+        req.flash('error_msg', 'Could not load settings.');
+        res.redirect('/student/dashboard');
+    }
+};
+
+exports.updateSettings = async (req, res) => {
+    try {
+        const { currentPassword, newPassword, confirmPassword } = req.body;
+        
+        if (newPassword !== confirmPassword) {
+            req.flash('error_msg', 'New passwords do not match.');
+            return res.redirect('/student/settings');
+        }
+
+        const userLogin = await Login.findById(req.session.user.loginId);
+        
+        const isMatch = await bcrypt.compare(currentPassword, userLogin.password);
+        if (!isMatch) {
+            req.flash('error_msg', 'Incorrect current password.');
+            return res.redirect('/student/settings');
+        }
+
+        const hashedPassword = await bcrypt.hash(newPassword, 12);
+        userLogin.password = hashedPassword;
+        await userLogin.save();
+
+        req.flash('success_msg', 'Password updated successfully.');
+        res.redirect('/student/settings');
+    } catch (error) {
+        console.error("Error updating settings:", error);
+        req.flash('error_msg', 'An error occurred while updating settings.');
+        res.redirect('/student/settings');
+    }
+};
+
+exports.uploadProfilePicture = async (req, res) => {
+    try {
+        if (!req.file) {
+            req.flash('error_msg', 'No file selected.');
+            return res.redirect('/student/settings');
+        }
+        
+        await Student.findByIdAndUpdate(req.session.user.profileId, { profilePicture: req.file.path });
+        
+        if (req.session.user) {
+            req.session.user.profilePicture = req.file.path;
+        }
+
+        req.flash('success_msg', 'Profile picture updated successfully.');
+        res.redirect('/student/settings');
+    } catch (error) {
+        console.error("Error uploading profile picture:", error);
+        req.flash('error_msg', 'Failed to upload profile picture.');
+        res.redirect('/student/settings');
     }
 };

@@ -1,134 +1,195 @@
-<div class="welcome-header">
-    <h1>Welcome, <%= adminName %>!</h1>
-    <p class="text-muted">Here's a high-level overview of your projects.</p>
+<%- include('../partials/_header.ejs', { title: title, user: user, sprintSetting: sprintSetting }) %>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="welcome-header">
+        <h1>Admin Dashboard</h1>
+        <p>Welcome, <%= adminName %></p>
+    </div>
+    <a href="/admin/settings" class="btn btn-outline-secondary">
+        <i class="fas fa-cog me-1"></i> Settings
+    </a>
 </div>
 
-<!-- Stat Cards Row -->
-<div class="row">
+<%- include('../partials/_messages.ejs') %>
+
+<!-- Stats Row -->
+<div class="row mb-4">
     <div class="col-xl-3 col-md-6 mb-4">
-        <div class="card stat-card border-primary">
+        <div class="card border-left-primary shadow h-100 py-2">
             <div class="card-body">
-                <div class="stat-card-title">Total Teams</div>
-                <div class="stat-card-value"><%= totalTeams %></div>
-                <i class="fas fa-users stat-card-icon"></i>
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Total Teams</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800"><%= totalTeams %></div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-users fa-2x text-gray-300"></i>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
+
     <div class="col-xl-3 col-md-6 mb-4">
-        <div class="card stat-card border-success">
+        <div class="card border-left-success shadow h-100 py-2">
             <div class="card-body">
-                <div class="stat-card-title">Projects On Track</div>
-                <div class="stat-card-value"><%= projectsOnTrack %></div>
-                <i class="fas fa-check-circle stat-card-icon"></i>
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Active Projects</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800"><%= activeSprints %></div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-running fa-2x text-gray-300"></i>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
+
     <div class="col-xl-3 col-md-6 mb-4">
-        <div class="card stat-card border-warning">
+        <div class="card border-left-warning shadow h-100 py-2">
             <div class="card-body">
-                <div class="stat-card-title">Projects At Risk</div>
-                <div class="stat-card-value"><%= projectsAtRisk %></div>
-                <i class="fas fa-exclamation-triangle stat-card-icon"></i>
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Pending Approvals</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800"><%= pendingUsers.length %></div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-user-clock fa-2x text-gray-300"></i>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
+    
     <div class="col-xl-3 col-md-6 mb-4">
-        <div class="card stat-card border-danger">
-            <div class="card-body">
-                <div class="stat-card-title">Projects Delayed</div>
-                <div class="stat-card-value"><%= projectsDelayed %></div>
-                <i class="fas fa-calendar-times stat-card-icon"></i>
+        <a href="/admin/teams?filter=atRisk" class="text-decoration-none">
+            <div class="card border-left-danger shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">Projects At Risk</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800"><%= projectsAtRisk %></div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-exclamation-triangle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
             </div>
-        </div>
+        </a>
     </div>
 </div>
 
-<!-- Main Content Row -->
-<div class="row">
-    <!-- Left Column -->
-    <div class="col-lg-7">
-        <!-- Pending User Approvals -->
-        <div class="card">
-            <div class="card-header">
-                <i class="fas fa-user-clock me-2"></i>Pending User Approvals
+<!-- Project Health Row -->
+<div class="row mb-4">
+    <div class="col-lg-6 mb-4">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Project Health Overview</h6>
             </div>
-            <div class="card-body p-0">
+            <div class="card-body">
+                <h4 class="small font-weight-bold">On Track <span class="float-end"><%= projectsOnTrack %></span></h4>
+                <div class="progress mb-4">
+                    <div class="progress-bar bg-success" role="progressbar" style="width: <%= (projectsOnTrack / (totalTeams || 1)) * 100 %>%"></div>
+                </div>
+                <h4 class="small font-weight-bold">At Risk <span class="float-end"><%= projectsAtRisk %></span></h4>
+                <div class="progress mb-4">
+                    <div class="progress-bar bg-warning" role="progressbar" style="width: <%= (projectsAtRisk / (totalTeams || 1)) * 100 %>%"></div>
+                </div>
+                <h4 class="small font-weight-bold">Delayed <span class="float-end"><%= projectsDelayed %></span></h4>
+                <div class="progress mb-4">
+                    <div class="progress-bar bg-danger" role="progressbar" style="width: <%= (projectsDelayed / (totalTeams || 1)) * 100 %>%"></div>
+                </div>
+                <h4 class="small font-weight-bold">Unscheduled <span class="float-end"><%= projectsUnscheduled %></span></h4>
+                <div class="progress mb-4">
+                    <div class="progress-bar bg-secondary" role="progressbar" style="width: <%= (projectsUnscheduled / (totalTeams || 1)) * 100 %>%"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6 mb-4">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Pending User Approvals</h6>
+            </div>
+            <div class="card-body">
                 <% if (pendingUsers.length > 0) { %>
                     <div class="table-responsive">
-                        <table class="table table-hover mb-0">
+                        <table class="table table-bordered" width="100%" cellspacing="0">
                             <thead>
                                 <tr>
                                     <th>Name</th>
-                                    <th>Email</th>
                                     <th>Role</th>
-                                    <th>Actions</th>
+                                    <th>Email</th>
+                                    <th>Action</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <% pendingUsers.forEach(user => { %>
                                     <tr>
                                         <td><%= user.profileId ? user.profileId.name : 'N/A' %></td>
+                                        <td><%= user.role %></td>
                                         <td><%= user.email %></td>
-                                        <td><span class="badge bg-secondary text-capitalize"><%= user.role %></span></td>
                                         <td>
                                             <form action="/admin/users/<%= user._id %>/approve" method="POST" class="d-inline">
-                                                <button type="submit" class="btn btn-sm btn-success"><i class="fas fa-check"></i></button>
+                                                <button type="submit" class="btn btn-success btn-sm">Approve</button>
                                             </form>
                                             <form action="/admin/users/<%= user._id %>/reject" method="POST" class="d-inline">
-                                                <button type="submit" class="btn btn-sm btn-danger"><i class="fas fa-times"></i></button>
+                                                <button type="submit" class="btn btn-danger btn-sm">Reject</button>
                                             </form>
                                         </td>
                                     </tr>
-                                <% }); %>
+                                <% }) %>
                             </tbody>
                         </table>
                     </div>
                 <% } else { %>
-                    <p class="text-center text-muted p-4 mb-0">No pending users to approve.</p>
-                <% } %>
-            </div>
-        </div>
-    </div>
-
-    <!-- Right Column -->
-    <div class="col-lg-5">
-        <!-- At-Risk Projects -->
-        <div class="card">
-            <div class="card-header">
-                <i class="fas fa-exclamation-circle me-2"></i>At-Risk Project Details
-            </div>
-            <div class="card-body">
-                <% if (atRiskDetails && atRiskDetails.length > 0) { %>
-                    <div class="accordion accordion-flush" id="atRiskAccordion">
-                        <% atRiskDetails.forEach((team, idx) => { %>
-                            <div class="accordion-item">
-                                <h2 class="accordion-header" id="heading-<%= idx %>">
-                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-<%= idx %>">
-                                        <div class="flex-grow-1">
-                                            <strong><%= team.teamName %></strong>
-                                            <span class="badge bg-warning rounded-pill ms-2"><%= team.atRiskCount %> at-risk tasks</span>
-                                        </div>
-                                    </button>
-                                </h2>
-                                <div id="collapse-<%= idx %>" class="accordion-collapse collapse" data-bs-parent="#atRiskAccordion">
-                                    <div class="accordion-body p-0">
-                                        <ul class="list-group list-group-flush">
-                                            <% team.tasks.forEach(task => { %>
-                                                <li class="list-group-item">
-                                                    <div><%= task.description %></div>
-                                                    <small class="text-muted">Due: <%= new Date(task.endDate).toLocaleDateString() %> - Status: <%= task.status %></small>
-                                                </li>
-                                            <% }); %>
-                                        </ul>
-                                    </div>
-                                </div>
-                            </div>
-                        <% }); %>
-                    </div>
-                <% } else { %>
-                    <p class="text-center text-muted mb-0">No projects are currently classified as at-risk. Great job!</p>
+                    <p class="text-center text-muted">No pending approvals.</p>
                 <% } %>
             </div>
         </div>
     </div>
 </div>
+
+<% if (atRiskDetails.length > 0) { %>
+<div class="card shadow mb-4">
+    <div class="card-header py-3">
+        <h6 class="m-0 font-weight-bold text-danger">At Risk Projects Details</h6>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>Team</th>
+                        <th>At Risk Tasks</th>
+                        <th>Top Issues</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% atRiskDetails.forEach(detail => { %>
+                        <tr>
+                            <td><%= detail.teamName %></td>
+                            <td><%= detail.atRiskCount %></td>
+                            <td>
+                                <ul class="mb-0 ps-3">
+                                    <% detail.tasks.forEach(task => { %>
+                                        <li>
+                                            <%= task.description %> 
+                                            <span class="badge bg-warning text-dark"><%= new Date(task.endDate).toLocaleDateString() %></span>
+                                        </li>
+                                    <% }) %>
+                                </ul>
+                            </td>
+                        </tr>
+                    <% }) %>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+<% } %>
+
+<%- include('../partials/_footer.ejs') %>

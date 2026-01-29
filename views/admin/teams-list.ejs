@@ -1,136 +1,198 @@
+<%- include('../partials/_header.ejs', { title: title, user: user, sprintSetting: sprintSetting }) %>
+
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <div>
-        <h1 class="welcome-header h3 mb-0">All Teams</h1>
-        <p class="text-muted">An overview of all project teams.</p>
-    </div>
-    <div>
-        <div class="d-flex align-items-center gap-3">
-            <form action="/admin/teams" method="GET" class="d-flex">
-                <input type="text" name="search" class="form-control form-control-sm" placeholder="Search by name..." value="<%= search %>">
-                <input type="hidden" name="sortBy" value="<%= sortBy %>">
-                <button type="submit" class="btn btn-sm btn-primary ms-2">Search</button>
-            </form>
-            <div class="dropdown">
-                <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="sortDropdown" data-bs-toggle="dropdown">
-                    Sort by: <span class="text-capitalize"><%= sortBy.replace('_', ' ') %></span>
-                </button>
-                <ul class="dropdown-menu" aria-labelledby="sortDropdown">
-                    <li><a class="dropdown-item" href="?sortBy=name&search=<%= search %>">Team Name</a></li>
-                    <li><a class="dropdown-item" href="?sortBy=sprint_progress&search=<%= search %>">Sprint Progress</a></li>
-                    <li><a class="dropdown-item" href="?sortBy=overall_progress&search=<%= search %>">Overall Progress</a></li>
-                    <li><a class="dropdown-item" href="?sortBy=domain&search=<%= search %>">Domain</a></li>
-                </ul>
+    <h1>All Teams</h1>
+    <a href="/admin/teams/new" class="btn btn-primary"><i class="fas fa-plus me-2"></i>Create Team</a>
+</div>
+
+<%- include('../partials/_messages.ejs') %>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <form action="/admin/teams" method="GET" class="row g-3">
+            <div class="col-md-3">
+                <input type="text" name="search" class="form-control" placeholder="Search teams..." value="<%= search %>">
             </div>
-            <a href="/admin/teams/new" class="btn btn-primary"><i class="fas fa-plus-circle me-1"></i> Create New Team</a>
+            <div class="col-md-3">
+                <select name="sortBy" class="form-select" onchange="this.form.submit()">
+                    <option value="name" <%= sortBy === 'name' ? 'selected' : '' %>>Sort by Name</option>
+                    <option value="sprint_progress" <%= sortBy === 'sprint_progress' ? 'selected' : '' %>>Sort by Sprint Progress</option>
+                    <option value="overall_progress" <%= sortBy === 'overall_progress' ? 'selected' : '' %>>Sort by Overall Progress</option>
+                    <option value="domain" <%= sortBy === 'domain' ? 'selected' : '' %>>Sort by Domain</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select name="filter" class="form-select" onchange="this.form.submit()">
+                    <option value="">All Projects</option>
+                    <option value="atRisk" <%= filter === 'atRisk' ? 'selected' : '' %>>At Risk Only</option>
+                    <option value="archived" <%= filter === 'archived' ? 'selected' : '' %>>Archived Teams</option>
+                </select>
+            </div>
+            <div class="col-md-3 d-flex gap-2">
+                <button type="submit" class="btn btn-secondary flex-grow-1">Search</button>
+                <% if (search || filter || (sortBy && sortBy !== 'name')) { %>
+                    <a href="/admin/teams" class="btn btn-outline-secondary">Clear</a>
+                <% } %>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Team Name</th>
+                        <th>Project / Domain</th>
+                        <th>Guide</th>
+                        <th>Active Sprint</th>
+                        <th>Progress</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% if (teams.length > 0) { %>
+                        <% teams.forEach(team => { %>
+                            <tr>
+                                <td>
+                                    <strong><%= team.name %></strong>
+                                    <% if (team.isAtRisk) { %>
+                                        <span class="badge bg-danger ms-2">At Risk</span>
+                                    <% } %>
+                                </td>
+                                <td>
+                                    <div class="small"><%= team.projectTitle %></div>
+                                    <span class="badge bg-light text-dark border"><%= team.domainName %></span>
+                                </td>
+                                <td><%= team.guide ? team.guide.name : 'Unassigned' %></td>
+                                <td><%= team.activeSprintName || 'None' %></td>
+                                <td style="width: 200px;">
+                                    <% if (team.activeSprintName) { %>
+                                        <% if (team.sprintTotalPoints > 0) { %>
+                                            <% 
+                                                const percentage = (team.completedStoryPoints / team.sprintTotalPoints) * 100;
+                                                let progressClass = 'bg-success';
+                                                if (percentage < 40) progressClass = 'bg-danger';
+                                                else if (percentage < 80) progressClass = 'bg-warning';
+                                            %>
+                                            <div class="progress" style="height: 10px;">
+                                                <div class="progress-bar <%= progressClass %>" role="progressbar" style="width: <%= percentage %>%;" title="<%= percentage.toFixed(1) %>%"></div>
+                                            </div>
+                                            <small class="text-dark"><%= team.completedStoryPoints %> / <%= team.sprintTotalPoints %> HR</small>
+                                        <% } else { %>
+                                            <small class="text-dark">0 HR Planned</small>
+                                        <% } %>
+                                    <% } else { %>
+                                        <span class="text-dark small">No active sprint</span>
+                                    <% } %>
+                                </td>
+                                <td>
+                                    <% if (team.isAtRisk) { %>
+                                        <span class="text-danger"><i class="fas fa-exclamation-circle"></i> Attention Needed</span>
+                                    <% } else if (team.isUnscheduled) { %>
+                                        <span class="text-secondary">Unscheduled</span>
+                                    <% } else { %>
+                                        <span class="text-success">On Track</span>
+                                    <% } %>
+                                </td>
+                                <td>
+                                    <a href="/admin/teams/<%= team._id %>" class="btn btn-sm btn-info text-white"><i class="fas fa-eye"></i></a>
+                                    <a href="/admin/teams/<%= team._id %>/edit" class="btn btn-sm btn-primary"><i class="fas fa-edit"></i></a>
+                                    <% if (filter === 'archived') { %>
+                                        <button type="button" class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#actionTeamModal" data-team-id="<%= team._id %>" data-team-name="<%= team.name %>" data-action="restore">
+                                            <i class="fas fa-trash-restore"></i>
+                                        </button>
+                                    <% } else { %>
+                                        <button type="button" class="btn btn-sm btn-warning text-dark" data-bs-toggle="modal" data-bs-target="#actionTeamModal" data-team-id="<%= team._id %>" data-team-name="<%= team.name %>" data-action="archive">
+                                            <i class="fas fa-archive"></i>
+                                        </button>
+                                    <% } %>
+                                </td>
+                            </tr>
+                        <% }); %>
+                    <% } else { %>
+                        <tr>
+                            <td colspan="7" class="text-center py-4">No teams found.</td>
+                        </tr>
+                    <% } %>
+                </tbody>
+            </table>
         </div>
     </div>
 </div>
 
-<% if (teams.length > 0) { %>
-    <div class="card-container">
-        <% teams.forEach(team => { %>
-            <div class="team-card">
-                <a href="/admin/teams/<%= team._id %>" class="team-card-link">
-                    <div class="team-card-body">
+<!-- Pagination -->
+<% if (totalPages > 1) { %>
+    <nav aria-label="Page navigation" class="mt-4">
+        <ul class="pagination justify-content-center">
+            <li class="page-item <%= currentPage === 1 ? 'disabled' : '' %>">
+                <a class="page-link" href="/admin/teams?page=<%= currentPage - 1 %>&search=<%= search %>&sortBy=<%= sortBy %>&filter=<%= filter %>">Previous</a>
+            </li>
+            <% for(let i = 1; i <= totalPages; i++) { %>
+                <li class="page-item <%= currentPage === i ? 'active' : '' %>">
+                    <a class="page-link" href="/admin/teams?page=<%= i %>&search=<%= search %>&sortBy=<%= sortBy %>&filter=<%= filter %>"><%= i %></a>
+                </li>
+            <% } %>
+            <li class="page-item <%= currentPage === totalPages ? 'disabled' : '' %>">
+                <a class="page-link" href="/admin/teams?page=<%= currentPage + 1 %>&search=<%= search %>&sortBy=<%= sortBy %>&filter=<%= filter %>">Next</a>
+            </li>
+        </ul>
+    </nav>
+<% } %>
 
-                        <!-- MAIN TEAM INFO -->
-                        <div class="team-card-main-info">
-                            <h5 class="team-name mb-0"><%= team.name %></h5>
-
-                            <!-- ✅ Project Title -->
-                            <p class="project-detail small text-light mb-1">
-                                <strong>Project:</strong> <%= team.projectTitle %>
-                            </p>
-
-                            <!-- ✅ Domain -->
-                            <p class="project-detail small text-muted mb-2">
-                                <i class="fas fa-layer-group me-1"></i> <%= team.domainName || 'No Domain Assigned' %>
-                            </p>
-
-                            <!-- Guide -->
-                            <div class="team-guide">
-                                <p class="mb-0 small">
-                                    <i class="fas fa-user-tie me-2"></i>
-                                    <%= team.guide ? team.guide.name : 'N/A' %>
-                                </p>
-                            </div>
-                        </div>
-
-                        <!-- SPRINT PROGRESS -->
-                        <div class="progress-section">
-                            <% if (team.sprintCapacity > 0) { %>
-                                <div class="progress-header">
-                                    <span class="progress-title">Active Sprint</span>
-                                    <div class="text-muted small"><%= team.activeSprintName %></div>
-                                </div>
-                                <div class="progress-bar-wrapper">
-                                    <% const sprintPercentage = (team.completedStoryPoints / team.sprintCapacity) * 100; %>
-                                    <div class="progress-bar-inner sprint-progress" style="width: <%= sprintPercentage.toFixed(2) %>%;"></div>
-                                </div>
-                                <div class="progress-value small text-end">
-                                    <%= team.completedStoryPoints %> / <%= team.sprintCapacity %> SP
-                                </div>
-                            <% } else { %>
-                                <div class="no-sprint-message small text-muted">
-                                    No active sprint for this team.
-                                </div>
-                            <% } %>
-                        </div>
-
-                        <!-- OVERALL PROGRESS -->
-                        <div class="progress-section">
-                            <% if (team.overallTotalPoints > 0) { %>
-                                <span class="progress-title">Overall Project Completion</span>
-                                <div class="progress-bar-wrapper">
-                                    <% const overallPercentage = (team.overallCompletedPoints / team.overallTotalPoints) * 100; %>
-                                    <div class="progress-bar-inner overall-progress" style="width: <%= overallPercentage.toFixed(2) %>%;"></div>
-                                </div>
-                                <div class="progress-value small text-end">
-                                    <%= team.overallCompletedPoints %> / <%= team.overallTotalPoints %> SP
-                                </div>
-                            <% } %>
-                        </div>
-
-                        <!-- MEMBERS -->
-                        <div class="team-members mt-3">
-                            <h6 class="members-title small text-muted">Members</h6>
-                            <div class="member-list">
-                                <% if (team.students && team.students.length > 0) { %>
-                                    <% team.students.forEach(student => { %>
-                                        <span class="member-chip"><%= student.name %></span>
-                                    <% }) %>
-                                <% } else { %>
-                                    <p class="small text-muted mb-0">No members assigned</p>
-                                <% } %>
-                            </div>
-                        </div>
-
-                    </div>
-                </a>
-
-                <!-- ACTION BUTTONS -->
-                <div class="card-actions">
-                    <a href="/admin/teams/<%= team._id %>/edit" class="btn btn-action btn-edit">
-                        <i class="fas fa-edit me-1"></i> Edit
-                    </a>
-                    <a href="/admin/teams/<%= team._id %>/report" class="btn btn-action">
-                        <i class="fas fa-file-alt me-1"></i> Report
-                    </a>
-                    <form action="/admin/teams/<%= team._id %>/delete" method="POST" onsubmit="return confirm('Are you sure you want to delete this team?');">
-                        <button type="submit" class="btn btn-action btn-delete">
-                            <i class="fas fa-trash me-1"></i> Delete
-                        </button>
-                    </form>
-                </div>
-
+<!-- Archive/Restore Confirmation Modal -->
+<div class="modal fade" id="actionTeamModal" tabindex="-1" aria-labelledby="actionTeamModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="actionTeamModalLabel">Confirm Action</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-        <% }); %>
-    </div>
-<% } else { %>
-    <div class="card">
-        <div class="card-body text-center p-5">
-            <p class="text-muted mb-0">No teams have been created yet.</p>
-            <a href="/admin/teams/new" class="btn btn-primary mt-3">Create the First Team</a>
+            <div class="modal-body">
+                Are you sure you want to <span id="actionText"></span> the team <strong id="teamNameToAction"></strong>?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form id="actionTeamForm" method="POST">
+                    <button type="submit" class="btn" id="actionButton">Confirm</button>
+                </form>
+            </div>
         </div>
     </div>
-<% } %>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const actionModal = document.getElementById('actionTeamModal');
+        if (actionModal) {
+            actionModal.addEventListener('show.bs.modal', function(event) {
+                const button = event.relatedTarget;
+                const teamId = button.getAttribute('data-team-id');
+                const teamName = button.getAttribute('data-team-name');
+                const action = button.getAttribute('data-action');
+
+                const teamNameSpan = actionModal.querySelector('#teamNameToAction');
+                const actionTextSpan = actionModal.querySelector('#actionText');
+                const actionForm = actionModal.querySelector('#actionTeamForm');
+                const actionButton = actionModal.querySelector('#actionButton');
+
+                teamNameSpan.textContent = teamName;
+                
+                if (action === 'restore') {
+                    actionTextSpan.textContent = 'restore';
+                    actionForm.action = `/admin/teams/${teamId}/delete?restore=true`;
+                    actionButton.className = 'btn btn-success';
+                } else {
+                    actionTextSpan.textContent = 'archive';
+                    actionForm.action = `/admin/teams/${teamId}/delete`;
+                    actionButton.className = 'btn btn-warning';
+                }
+            });
+        }
+    });
+</script>
+
+<%- include('../partials/_footer.ejs') %>

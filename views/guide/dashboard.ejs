@@ -1,6 +1,11 @@
-<div class="welcome-header">
-    <h1>Welcome, <%= user.name %>!</h1>
-    <p class="text-muted">Here's the status of your assigned teams.</p>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="welcome-header">
+        <h1>Welcome, <%= user.name %>!</h1>
+        <p class="text-muted">Here's the status of your assigned teams.</p>
+    </div>
+    <a href="/guide/settings" class="btn btn-outline-secondary">
+        <i class="fas fa-cog me-1"></i> Settings
+    </a>
 </div>
 
 <% if (teams.length > 0) { %>
@@ -23,7 +28,7 @@
                             <div class="progress-section">
                                 <div class="progress-header">
                                     <span class="progress-title">Active Sprint Progress</span>
-                                    <span class="progress-value"><%= team.completedStoryPoints %> / <%= team.sprintCapacity %> SP</span>
+                                    <span class="progress-value text-dark"><%= team.completedStoryPoints %> / <%= team.sprintCapacity %> HR</span>
                                 </div>
                                 <div class="progress-bar-wrapper">
                                     <% const sprintPercentage = (team.completedStoryPoints / team.sprintCapacity) * 100; %>
@@ -40,7 +45,7 @@
                             <div class="progress-section">
                                 <div class="progress-header">
                                     <span class="progress-title">Overall Project Completion</span>
-                                    <span class="progress-value"><%= team.overallCompletedPoints %> / <%= team.overallTotalPoints %> SP</span>
+                                    <span class="progress-value text-dark"><%= team.overallCompletedPoints %> / <%= team.overallTotalPoints %> HR</span>
                                 </div>
                                 <div class="progress-bar-wrapper">
                                     <% const overallPercentage = (team.overallCompletedPoints / team.overallTotalPoints) * 100; %>

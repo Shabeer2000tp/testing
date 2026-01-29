@@ -23,7 +23,6 @@ exports.getDashboard = async (req, res) => {
     try {
         const pendingUsers = await Login.find({ status: 'pending' }).populate('profileId');
         const totalTeams = await Team.countDocuments();
-        const activeSprints = await Sprint.countDocuments({ status: 'Active' });
         const adminProfile = await Admin.findById(req.session.user.profileId);
         
         // --- ADD THIS LINE ---
@@ -35,6 +34,7 @@ exports.getDashboard = async (req, res) => {
     let projectsOnTrack = 0;
     let projectsDelayed = 0;
     let projectsUnscheduled = 0;
+    let activeProjectsCount = 0;
         const now = new Date();
     // Thresholds: allow overrides via query params for quick tuning
     const riskThreshold = parseInt(req.query.riskThreshold, 10) || 6; // default 6 tasks
@@ -51,8 +51,14 @@ exports.getDashboard = async (req, res) => {
                 sprintQuery = { team: { $exists: false } };
             }
 
-            // pick the latest sprint for this team (or global)
-            const lastSprint = await Sprint.findOne(sprintQuery).sort({ endDate: -1 });
+            // Logic to find the most relevant sprint: Active > Completed (latest) > Pending (earliest)
+            let lastSprint = await Sprint.findOne({ ...sprintQuery, status: 'Active' });
+            if (!lastSprint) {
+                lastSprint = await Sprint.findOne({ ...sprintQuery, status: 'Completed' }).sort({ endDate: -1 });
+            }
+            if (!lastSprint) {
+                lastSprint = await Sprint.findOne({ ...sprintQuery, status: 'Pending' }).sort({ startDate: 1 });
+            }
 
             let tasks = [];
             if (lastSprint) {
@@ -63,6 +69,10 @@ exports.getDashboard = async (req, res) => {
             if (!lastSprint) {
                 projectsUnscheduled += 1;
                 continue;
+            }
+
+            if (lastSprint.status === 'Active') {
+                activeProjectsCount++;
             }
 
             // Compute simple metrics
@@ -103,7 +113,7 @@ exports.getDashboard = async (req, res) => {
             user: req.session.user,
             pendingUsers,
             totalTeams,
-            activeSprints,
+            activeSprints: activeProjectsCount,
             adminName: adminProfile ? adminProfile.name : 'Admin',
             sprintSetting: sprintSetting || { value: 'global' },
             projectsAtRisk,
@@ -210,15 +220,22 @@ exports.getTeamsListPage = async (req, res) => {
     try {
         const sortBy = req.query.sortBy || 'name'; // Default sort by name
         const search = req.query.search || '';
+        const filter = req.query.filter || ''; // New filter param
 
         let query = {};
+        
+        // Archive Filter Logic
+        if (filter === 'archived') {
+            query.isArchived = true;
+        } else {
+            query.isArchived = { $ne: true }; // Default: show active teams
+        }
+
         if (search) {
             query.name = { $regex: search, $options: 'i' }; // Case-insensitive search
         }
 
         const teams = await Team.find(query).populate('guide', 'name').populate('students', 'name studentIdNumber');
-        const allSprints = await Sprint.find({});
-        const overallTotalPoints = allSprints.reduce((sum, sprint) => sum + (sprint.capacity || 0), 0);
 
         const startOfToday = new Date();
         startOfToday.setHours(0, 0, 0, 0);
@@ -226,7 +243,14 @@ exports.getTeamsListPage = async (req, res) => {
         endOfToday.setHours(23, 59, 59, 999);
 
         const sprintSetting = await Setting.findOne({ key: 'sprintCreation' });
+        const processedTeams = []; // Array to hold teams after processing and filtering
 
+        // Risk thresholds (matching getDashboard)
+        const riskThreshold = 6;
+        const nearWindowDays = 3;
+        const NEAR_END_MS = nearWindowDays * 24 * 60 * 60 * 1000;
+        const now = new Date();
+        
         for (const team of teams) {
             let activeSprintForTeam;
 
@@ -248,8 +272,12 @@ exports.getTeamsListPage = async (req, res) => {
 
             if (activeSprintForTeam) {
                 const tasks = await Task.find({ team: team._id, sprint: activeSprintForTeam._id });
-                // Use the sprint's total capacity for the progress bar total
-                team.sprintCapacity = activeSprintForTeam.capacity;
+                
+                // Calculate total points planned in the sprint (sum of all tasks)
+                const totalPoints = tasks.reduce((sum, task) => sum + (task.storyPoints || 0), 0);
+                // Use total points if available, otherwise fallback to capacity (e.g. if no tasks yet)
+                team.sprintTotalPoints = totalPoints > 0 ? totalPoints : activeSprintForTeam.capacity;
+                
                 team.completedStoryPoints = tasks.filter(task => task.status === 'Done').reduce((sum, task) => sum + (task.storyPoints || 0), 0);
                 team.activeSprintName = activeSprintForTeam.name; // Add sprint name
             } else {
@@ -263,14 +291,58 @@ exports.getTeamsListPage = async (req, res) => {
             const proposal = await Proposal.findOne({ team: team._id, status: 'Approved' }).populate('domain');
             team.projectTitle = proposal ? proposal.title : 'Untitled Project';
             team.domainName = proposal && proposal.domain ? proposal.domain.name : 'N/A';
-            team.overallTotalPoints = overallTotalPoints;
+            
+            let projectSprints = [];
+            if (sprintSetting && sprintSetting.value === 'team') {
+                projectSprints = await Sprint.find({ team: team._id });
+            } else {
+                projectSprints = await Sprint.find({ team: { $exists: false } });
+            }
+            team.overallTotalPoints = projectSprints.reduce((sum, sprint) => sum + (sprint.capacity || 0), 0);
+
+            // --- RISK CALCULATION ---
+            // Logic matches getDashboard to ensure consistency
+            let sprintQuery;
+            if (sprintSetting && sprintSetting.value === 'team') {
+                sprintQuery = { team: team._id };
+            } else {
+                sprintQuery = { team: { $exists: false } };
+            }
+
+            // Find the most relevant sprint for risk assessment: Active > Completed > Pending
+            let lastSprint = await Sprint.findOne({ ...sprintQuery, status: 'Active' });
+            if (!lastSprint) {
+                lastSprint = await Sprint.findOne({ ...sprintQuery, status: 'Completed' }).sort({ endDate: -1 });
+            }
+            if (!lastSprint) {
+                lastSprint = await Sprint.findOne({ ...sprintQuery, status: 'Pending' }).sort({ startDate: 1 });
+            }
+
+            let isAtRisk = false;
+            if (lastSprint) {
+                const riskTasks = await Task.find({ team: team._id, sprint: lastSprint._id });
+                const incompleteTasks = riskTasks.filter(t => t.status !== 'Done').length;
+                const sprintEnded = lastSprint.endDate && (new Date(lastSprint.endDate) < now);
+                const atRiskTasks = riskTasks.filter(t => t.status !== 'Done' && (new Date(t.endDate) < now || ((new Date(t.endDate) - now) <= NEAR_END_MS)));
+                const atRiskCount = atRiskTasks.length;
+                const nearEnding = lastSprint.endDate && (new Date(lastSprint.endDate) >= now) && ((new Date(lastSprint.endDate) - now) <= NEAR_END_MS);
+
+                if ((sprintEnded && incompleteTasks > 0) || (atRiskCount >= riskThreshold || (nearEnding && atRiskCount > 0))) {
+                    isAtRisk = true;
+                }
+            }
+            
+            team.isAtRisk = isAtRisk;
+            
+            if (filter === 'atRisk' && !isAtRisk) continue; // Filter out non-risk teams
+            processedTeams.push(team);
         }
 
         // --- SORTING LOGIC ---
-        teams.sort((a, b) => {
+        processedTeams.sort((a, b) => {
             if (sortBy === 'sprint_progress') {
-                const progressA = a.sprintCapacity > 0 ? (a.completedStoryPoints / a.sprintCapacity) : -1;
-                const progressB = b.sprintCapacity > 0 ? (b.completedStoryPoints / b.sprintCapacity) : -1;
+                const progressA = a.sprintTotalPoints > 0 ? (a.completedStoryPoints / a.sprintTotalPoints) : -1;
+                const progressB = b.sprintTotalPoints > 0 ? (b.completedStoryPoints / b.sprintTotalPoints) : -1;
                 return progressB - progressA; // Highest progress first
             } else if (sortBy === 'overall_progress') {
                 const progressA = a.overallTotalPoints > 0 ? (a.overallCompletedPoints / a.overallTotalPoints) : -1;
@@ -283,13 +355,25 @@ exports.getTeamsListPage = async (req, res) => {
             }
         });
 
+        // --- PAGINATION LOGIC ---
+        const page = parseInt(req.query.page, 10) || 1;
+        const limit = 10; // Items per page
+        const totalItems = processedTeams.length;
+        const totalPages = Math.ceil(totalItems / limit);
+        const startIndex = (page - 1) * limit;
+        const endIndex = page * limit;
+        const paginatedTeams = processedTeams.slice(startIndex, endIndex);
+
         res.render('admin/teams-list', { 
             title: 'All Teams', 
             user: req.session.user,
-            teams,
+            teams: paginatedTeams, // Use the paginated array
             sprintSetting: sprintSetting || { value: 'global' },
             sortBy, // Pass sortBy to the view
-            search // Pass search term to the view
+            search, // Pass search term to the view
+            filter,  // Pass filter to the view
+            currentPage: page,
+            totalPages
         });
 
     } catch (error) {
@@ -318,16 +402,21 @@ exports.getTeamDetailPage = async (req, res) => {
         const endOfToday = new Date();
         endOfToday.setHours(23, 59, 59, 999);
 
+        const sprintSetting = await Setting.findOne({ key: 'sprintCreation' });
+
         // --- NEW: Calculate Overall Project Progress ---
-        const teamSprints = await Sprint.find({ team: team._id });
-        const overallTotalPoints = teamSprints.reduce((sum, sprint) => sum + (sprint.capacity || 0), 0);
+        let projectSprints = [];
+        if (sprintSetting && sprintSetting.value === 'team') {
+            projectSprints = await Sprint.find({ team: team._id });
+        } else {
+            projectSprints = await Sprint.find({ team: { $exists: false } });
+        }
+        const overallTotalPoints = projectSprints.reduce((sum, sprint) => sum + (sprint.capacity || 0), 0);
         
         const allCompletedTasks = await Task.find({ team: team._id, status: 'Done' });
         const overallCompletedPoints = allCompletedTasks.reduce((sum, task) => sum + (task.storyPoints || 0), 0);
         team.overallCompletedPoints = overallCompletedPoints;
         team.overallTotalPoints = overallTotalPoints;
-
-        const sprintSetting = await Setting.findOne({ key: 'sprintCreation' });
         let activeSprint;
 
         if (sprintSetting && sprintSetting.value === 'team') {
@@ -443,11 +532,17 @@ exports.updateTeam = async (req, res) => {
 };
 exports.deleteTeam = async (req, res) => {
     try {
-        await Team.findByIdAndDelete(req.params.id);
-        req.flash('success_msg', 'Team deleted successfully.');
-        res.redirect('/admin/teams');
+        // Check if we are restoring or archiving based on query param
+        if (req.query.restore === 'true') {
+            await Team.findByIdAndUpdate(req.params.id, { isArchived: false });
+            req.flash('success_msg', 'Team restored successfully.');
+        } else {
+            await Team.findByIdAndUpdate(req.params.id, { isArchived: true });
+            req.flash('success_msg', 'Team archived successfully.');
+        }
+        res.redirect('back');
     } catch (error) {
-        req.flash('error_msg', 'Failed to delete team.');
+        req.flash('error_msg', 'Failed to update team status.');
         res.redirect('/admin/teams');
     }
 };

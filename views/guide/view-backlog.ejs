@@ -1,10 +1,11 @@
 <%- include('../partials/_header.ejs', { title: title, user: user, sprintSetting: sprintSetting }) %>
 
-<div class="main-content">
+
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h1>Project Backlog</h1>
             <p class="text-muted">Team: <%= team.name %></p>
+            <span class="badge bg-info text-dark fs-6">Total Hours: <%= totalBacklogHours %></span>
         </div>
         <div>
             <% if (typeof activeSprint !== 'undefined' && activeSprint) { %>
@@ -23,8 +24,15 @@
     <%- include('../partials/_messages.ejs') %>
 
     <div class="card shadow-sm">
-        <div class="card-header bg-light">
-            <i class="fas fa-list me-2"></i>Backlog Items
+        <div class="card-header bg-light text-darkd %>/backlog" method="GET" class="d-flex align-items-center gap-2">
+                <label for="priorityFilter" class="small mb-0">Priority:</label>
+                <select name="priority" id="priorityFilter" class="form-select form-select-sm" style="width: auto;" onchange="this.form.submit()">
+                    <option value="">All</option>
+                    <option value="High" <%= locals.filterPriority === 'High' ? 'selected' : '' %>>High</option>
+                    <option value="Medium" <%= locals.filterPriority === 'Medium' ? 'selected' : '' %>>Medium</option>
+                    <option value="Low" <%= locals.filterPriority === 'Low' ? 'selected' : '' %>>Low</option>
+                </select>
+            </form>
         </div>
         <div class="card-body p-0">
             <div class="table-responsive">
@@ -33,6 +41,7 @@
                         <tr>
                             <th>Priority</th>
                             <th>Description</th>
+                            <th>Hours</th>
                             <th>Status</th>
                             <th>Created At</th>
                             <th>Actions</th>
@@ -52,6 +61,7 @@
                                         <% } %>
                                     </td>
                                     <td><%= item.description %></td>
+                                    <td><%= item.storyPoints || 0 %></td>
                                     <td>
                                         <% if (item.status === 'Completed') { %>
                                             <span class="badge bg-success">Completed</span>
@@ -77,7 +87,8 @@
                                             data-bs-target="#editItemModal"
                                             data-id="<%= item._id %>"
                                             data-description="<%= item.description %>"
-                                            data-priority="<%= item.priority %>">
+                                            data-priority="<%= item.priority %>"
+                                            data-points="<%= item.storyPoints %>">
                                             <i class="fas fa-edit"></i>
                                         </button>
                                         <button class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteItemModal" data-id="<%= item._id %>">
@@ -88,7 +99,7 @@
                             <% }); %>
                         <% } else { %>
                             <tr>
-                                <td colspan="5" class="text-center py-4 text-muted">
+                                <td colspan="6" class="text-center py-4 text-muted">
                                     No items in the backlog yet.
                                 </td>
                             </tr>
@@ -121,6 +132,10 @@
                         <option value="Low">Low</option>
                     </select>
                 </div>
+                <div class="mb-3">
+                    <label class="form-label">Hours</label>
+                    <input type="number" name="storyPoints" class="form-control" min="0">
+                </div>
             </div>
             <div class="modal-footer">
                 <button type="submit" class="btn btn-primary">Add Item</button>
@@ -150,6 +165,10 @@
                         <option value="Low">Low</option>
                     </select>
                 </div>
+                <div class="mb-3">
+                    <label class="form-label">Hours</label>
+                    <input type="number" name="storyPoints" id="editItemPoints" class="form-control" min="0">
+                </div>
             </div>
             <div class="modal-footer">
                 <button type="submit" class="btn btn-primary">Save Changes</button>
@@ -176,7 +195,7 @@
                     <input type="text" name="description" id="moveTaskDescription" class="form-control" required>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label">Story Points</label>
+                    <label class="form-label">Hours</label>
                     <input type="number" name="storyPoints" class="form-control" required min="1">
                 </div>
                 <div class="row">
@@ -236,7 +255,7 @@
                         </select>
                     </div>
                     <div class="col-md-6 mb-3">
-                        <label class="form-label">Story Points</label>
+                        <label class="form-label">Hours</label>
                         <input type="number" name="storyPoints" class="form-control" required min="1">
                     </div>
                 </div>
@@ -299,12 +318,14 @@
                 const id = button.getAttribute('data-id');
                 const description = button.getAttribute('data-description');
                 const priority = button.getAttribute('data-priority');
+                const points = button.getAttribute('data-points');
                 
                 const form = document.getElementById('editItemForm');
                 form.action = '/guide/teams/<%= team._id %>/backlog/' + id + '/edit';
                 
                 document.getElementById('editItemDescription').value = description;
                 document.getElementById('editItemPriority').value = priority;
+                document.getElementById('editItemPoints').value = points;
             });
         }
 

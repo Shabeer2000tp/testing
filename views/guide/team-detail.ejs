@@ -1,6 +1,6 @@
 <%- include('../partials/_header.ejs', { title: title, user: user, sprintSetting: sprintSetting }) %>
 
-<div class="main-content">
+
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div class="welcome-header mb-0">
             <h1>Team: <%= team.name %></h1>
@@ -19,7 +19,7 @@
     <div class="row mb-4">
         <div class="col-12">
             <div class="card">
-                <div class="card-header bg-light">
+                <div class="card-header bg-light text-dark">
                     <i class="fas fa-cogs me-2"></i>Team Management
                 </div>
                 <div class="card-body d-flex flex-wrap gap-3 align-items-center justify-content-between">
@@ -45,8 +45,14 @@
                         <a href="/guide/teams/<%= team._id %>/backlog" class="btn btn-info btn-sm text-white">
                             <i class="fas fa-list me-1"></i> View Backlog
                         </a>
+                        <a href="/guide/teams/<%= team._id %>/report" class="btn btn-primary btn-sm">
+                            <i class="fas fa-file-alt me-1"></i> Generate Report
+                        </a>
                         <a href="/guide/teams/<%= team._id %>/sprints" class="btn btn-warning btn-sm text-dark">
                             <i class="fas fa-history me-1"></i> Manage Sprints
+                        </a>
+                        <a href="/guide/teams/<%= team._id %>/past-sprints" class="btn btn-secondary btn-sm">
+                            <i class="fas fa-clock me-1"></i> Past Sprints
                         </a>
                         <button class="btn btn-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#addBacklogItemModal">
                             <i class="fas fa-plus me-1"></i> Add to Backlog
@@ -81,7 +87,7 @@
                                     <tr>
                                         <th>Task</th>
                                         <th>Assigned To</th>
-                                        <th>Points</th>
+                                        <th>Hours</th>
                                         <th>Status</th>
                                         <th>Actions</th>
                                     </tr>
@@ -158,7 +164,7 @@
                         <hr>
                         <div class="progress-header">
                             <span class="progress-title">Completed</span>
-                            <span class="progress-value"><%= team.completedStoryPoints %> / <%= team.sprintCapacity %> SP</span>
+                            <span class="progress-value text-dark"><%= team.completedStoryPoints %> / <%= team.sprintCapacity %> HR</span>
                         </div>
                         <div class="progress">
                             <div class="progress-bar" style="width: <%= (team.completedStoryPoints / (team.sprintCapacity || 1)) * 100 %>%"></div>
@@ -229,7 +235,7 @@
                     </div>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label">Capacity (Story Points)</label>
+                    <label class="form-label">Capacity (Hours)</label>
                     <input type="number" name="capacity" class="form-control" required min="1">
                 </div>
                 <div class="mb-3">
@@ -302,7 +308,7 @@
                     <input type="text" name="description" class="form-control" required>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label">Story Points</label>
+                    <label class="form-label">Hours</label>
                     <input type="number" name="storyPoints" class="form-control" required min="1">
                 </div>
                 <div class="row">
@@ -350,7 +356,7 @@
                     <input type="text" name="description" id="editTaskDescription" class="form-control" required>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label">Story Points</label>
+                    <label class="form-label">Hours</label>
                     <input type="number" name="storyPoints" id="editTaskPoints" class="form-control" required min="1">
                 </div>
                 <div class="mb-3">
@@ -423,6 +429,16 @@
                                 fill: false
                             }
                         ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                title: { display: true, text: 'Hours Remaining' }
+                            }
+                        }
                     }
                 });
             }

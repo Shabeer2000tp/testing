@@ -35,7 +35,7 @@
         <div class="card stat-card" style="border-left-color: #28a745;">
             <div class="card-body">
                 <div class="stat-card-title">Sprint Progress</div>
-                <div class="stat-card-value"><%= activeSprint ? `${team.completedStoryPoints} / ${team.sprintCapacity}` : 'N/A' %> <span class="fs-6 text-muted">SP</span></div>
+                <div class="stat-card-value"><%= activeSprint ? `${team.completedStoryPoints} / ${team.sprintCapacity}` : 'N/A' %> <span class="fs-6 text-dark">HR</span></div>
                 <i class="fas fa-check-circle stat-card-icon"></i>
             </div>
         </div>
@@ -44,7 +44,7 @@
         <div class="card stat-card" style="border-left-color: #f6c23e;">
             <div class="card-body">
                 <div class="stat-card-title">Overall Progress</div>
-                <div class="stat-card-value"><%= team.overallCompletedPoints %> / <%= team.overallTotalPoints || 'N/A' %> <span class="fs-6 text-muted">SP</span></div>
+                <div class="stat-card-value"><%= team.overallCompletedPoints %> / <%= team.overallTotalPoints || 'N/A' %> <span class="fs-6 text-dark">HR</span></div>
                 <i class="fas fa-tasks stat-card-icon"></i>
             </div>
         </div>
@@ -178,7 +178,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 { label:'Ideal Pace', data:<%- JSON.stringify(team.burndownChartData.idealData) %>, borderColor:'#ccc', borderDash:[5,5], fill:false }
             ]
         },
-        options:{ responsive:true, maintainAspectRatio:false }
+        options: { 
+            responsive: true, 
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: { display: true, text: 'Hours Remaining' }
+                }
+            }
+        }
     });
     <% } %>
 });

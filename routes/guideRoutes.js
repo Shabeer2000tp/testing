@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { isLoggedIn } = require('../middleware/authMiddleware');
 const guideController = require('../controllers/guideController');
+const { uploadDeliverable } = require('../config/multer-config');
 
 // CORRECT: Keep only this single route definition for the dashboard
 router.get('/dashboard', isLoggedIn, guideController.getDashboard);
@@ -58,5 +59,12 @@ router.post('/tasks/:id/delete', isLoggedIn, guideController.postDeleteTask);
 router.get('/teams/:id/sprints', isLoggedIn, guideController.getSprintsPage);
 router.post('/sprints/:sprintId/edit', isLoggedIn, guideController.postEditSprint);
 router.post('/sprints/:sprintId/delete', isLoggedIn, guideController.postDeleteSprint);
+
+router.get('/teams/:id/past-sprints', isLoggedIn, guideController.getPastSprints);
+router.get('/teams/:id/report', isLoggedIn, guideController.getEvaluationReport);
+
+router.get('/settings', isLoggedIn, guideController.getSettingsPage);
+router.post('/settings', isLoggedIn, guideController.updateSettings);
+router.post('/settings/profile-picture', isLoggedIn, uploadDeliverable.single('profilePicture'), guideController.uploadProfilePicture);
 
 module.exports = router;

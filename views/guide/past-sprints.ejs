@@ -1,0 +1,114 @@
+<%- include('../partials/_header.ejs', { title: title, user: user, sprintSetting: sprintSetting }) %>
+
+<div class="main-content">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1>Past Sprints</h1>
+            <p class="text-muted">Team: <%= team.name %></p>
+        </div>
+        <a href="/guide/teams/<%= team._id %>" class="btn btn-secondary">
+            <i class="fas fa-arrow-left me-1"></i> Back to Team
+        </a>
+    </div>
+
+    <%- include('../partials/_messages.ejs') %>
+
+    <% if (pastSprints.length > 0) { %>
+        <% pastSprints.forEach((sprint, index) => { %>
+            <div class="card mb-4 shadow-sm">
+                <div class="card-header bg-light text-dark d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><%= sprint.name %></h5>
+                    <small class="text-muted">
+                        <%= new Date(sprint.startDate).toLocaleDateString() %> - <%= new Date(sprint.endDate).toLocaleDateString() %>
+                    </small>
+                </div>
+                <div class="card-body">
+                    <p><strong>Goal:</strong> <%= sprint.goal %></p>
+                    
+                    <div class="row">
+                        <div class="col-md-8">
+                            <h6>Tasks</h6>
+                            <div class="table-responsive">
+                                <table class="table table-sm table-bordered">
+                                    <thead>
+                                        <tr>
+                                            <th>Task</th>
+                                            <th>Assigned To</th>
+                                            <th>Hours</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <% if (sprint.tasks && sprint.tasks.length > 0) { %>
+                                            <% sprint.tasks.forEach(task => { %>
+                                                <tr>
+                                                    <td><%= task.description %></td>
+                                                    <td><%= task.assignedTo ? task.assignedTo.name : 'Unassigned' %></td>
+                                                    <td><%= task.storyPoints %></td>
+                                                    <td>
+                                                        <% if (task.status === 'Done') { %>
+                                                            <span class="badge bg-success">Done</span>
+                                                        <% } else { %>
+                                                            <span class="badge bg-secondary"><%= task.status %></span>
+                                                        <% } %>
+                                                    </td>
+                                                </tr>
+                                            <% }) %>
+                                        <% } else { %>
+                                            <tr><td colspan="4" class="text-center text-muted">No tasks found.</td></tr>
+                                        <% } %>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <h6>Burndown Chart</h6>
+                            <% if (sprint.burndownChartData) { %>
+                                <div style="height: 200px;">
+                                    <canvas id="burndownChart-<%= index %>"></canvas>
+                                </div>
+                            <% } else { %>
+                                <p class="text-muted small">Not enough data for chart.</p>
+                            <% } %>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        <% }); %>
+    <% } else { %>
+        <div class="alert alert-info">No completed sprints found for this team.</div>
+    <% } %>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        <% pastSprints.forEach((sprint, index) => { %>
+            <% if (sprint.burndownChartData) { %>
+                new Chart(document.getElementById('burndownChart-<%= index %>'), {
+                    type: 'line',
+                    data: {
+                        labels: <%- sprint.burndownChartData.labels %>,
+                        datasets: [{
+                            label: 'Remaining Hours',
+                            data: <%- sprint.burndownChartData.actualData %>,
+                            borderColor: 'rgb(75, 192, 192)',
+                            tension: 0.1,
+                            fill: false
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: { beginAtZero: true, title: { display: true, text: 'Hours' } }
+                        },
+                        plugins: { legend: { display: false } }
+                    }
+                });
+            <% } %>
+        <% }); %>
+    });
+</script>
+
+<%- include('../partials/_footer.ejs') %>

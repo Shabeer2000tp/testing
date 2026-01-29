@@ -1,0 +1,169 @@
+<%- include('../partials/_header.ejs', { title: title, user: user, sprintSetting: sprintSetting }) %>
+
+<div class="main-content">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Project Evaluation Report</h1>
+        <button onclick="window.print()" class="btn btn-secondary"><i class="fas fa-print me-2"></i>Print Report</button>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">Team Information</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <p><strong>Team Name:</strong> <%= team.name %></p>
+                    <p><strong>Guide:</strong> <%= team.guide.name %></p>
+                    <p><strong>Project Title:</strong> <%= proposal ? proposal.title : 'Not Defined' %></p>
+                </div>
+                <div class="col-md-6">
+                    <p><strong>Domain:</strong> <%= proposal && proposal.domain ? proposal.domain.name : 'N/A' %></p>
+                    <p><strong>Total Tasks:</strong> <%= tasks.length %></p>
+                    <p><strong>Completed Hours:</strong> <%= totalPointsCompleted %></p>
+                </div>
+            </div>
+            <hr>
+            <h6>Team Members:</h6>
+            <ul>
+                <% team.students.forEach(student => { %>
+                    <li><%= student.name %> (<%= student.studentIdNumber %>)</li>
+                <% }) %>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0">Task Status Distribution</h5>
+                </div>
+                <div class="card-body">
+                    <div style="height: 300px;">
+                        <canvas id="taskStatusChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0">Hours per Student</h5>
+                </div>
+                <div class="card-body">
+                    <div style="height: 300px;">
+                        <canvas id="studentPerformanceChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">Task Summary</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-striped">
+                    <thead>
+                        <tr>
+                            <th>Task Description</th>
+                            <th>Assigned To</th>
+                            <th>Status</th>
+                            <th>Hours</th>
+                            <th>Completion Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% if (tasks.length > 0) { %>
+                            <% tasks.forEach(task => { %>
+                                <tr>
+                                    <td><%= task.description %></td>
+                                    <td>
+                                        <% if (task.assignedToAll) { %>
+                                            All Members
+                                        <% } else if (task.assignedTo) { %>
+                                            <%= task.assignedTo.name %>
+                                        <% } else { %>
+                                            Unassigned
+                                        <% } %>
+                                    </td>
+                                    <td>
+                                        <% if (task.status === 'Done') { %>
+                                            <span class="badge bg-success">Done</span>
+                                        <% } else if (task.status === 'In Progress') { %>
+                                            <span class="badge bg-primary">In Progress</span>
+                                        <% } else { %>
+                                            <span class="badge bg-secondary"><%= task.status %></span>
+                                        <% } %>
+                                    </td>
+                                    <td><%= task.storyPoints %></td>
+                                    <td><%= task.status === 'Done' ? moment(task.updatedAt).format('MMM Do YYYY') : '-' %></td>
+                                </tr>
+                            <% }); %>
+                        <% } else { %>
+                            <tr>
+                                <td colspan="5" class="text-center">No tasks found.</td>
+                            </tr>
+                        <% } %>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const ctx = document.getElementById('taskStatusChart').getContext('2d');
+        const counts = <%- JSON.stringify(taskStatusCounts) %>;
+        
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['To-Do', 'In Progress', 'Done'],
+                datasets: [{
+                    data: [counts['To-Do'], counts['In Progress'], counts['Done']],
+                    backgroundColor: ['#858796', '#4e73df', '#1cc88a'], // Gray, Blue, Green
+                    hoverBackgroundColor: ['#60616f', '#2e59d9', '#17a673'],
+                    hoverBorderColor: "rgba(234, 236, 244, 1)",
+                }],
+            },
+            options: {
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom' }
+                }
+            }
+        });
+
+        const ctx2 = document.getElementById('studentPerformanceChart').getContext('2d');
+        const performanceData = <%- JSON.stringify(studentPerformance) %>;
+        
+        new Chart(ctx2, {
+            type: 'bar',
+            data: {
+                labels: Object.keys(performanceData),
+                datasets: [{
+                    label: 'Completed Hours',
+                    data: Object.values(performanceData),
+                    backgroundColor: '#4e73df',
+                    borderColor: '#4e73df',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                maintainAspectRatio: false,
+                scales: {
+                    y: { beginAtZero: true }
+                }
+            }
+        });
+    });
+</script>
+
+<%- include('../partials/_footer.ejs') %>

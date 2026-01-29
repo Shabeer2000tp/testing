@@ -26,6 +26,7 @@ router.get('/upload', isLoggedIn, studentController.getUploadPage);
 router.post('/upload', isLoggedIn, uploadDeliverable.single('file'), studentController.postUpload);
 router.get('/sprints', isLoggedIn, studentController.getSprintsPage);
 router.post('/sprints', isLoggedIn, studentController.createSprint);
+router.post('/sprints/:sprintId/delete', isLoggedIn, studentController.postDeleteSprint);
 router.get('/calendar', isLoggedIn, studentController.getCalendarPage);
 router.get('/reviews', isLoggedIn, studentController.getReviewsPage);
 router.get('/reviews/:id', isLoggedIn, studentController.getReviewDetailPage);
@@ -37,5 +38,9 @@ router.get('/notifications/:id', isLoggedIn, notificationController.getNotificat
 // Routes for viewing notifications
 router.get('/notifications', isLoggedIn, studentController.getNotificationsPage);
 router.post('/notifications/mark-all-read', isLoggedIn, studentController.postMarkAllRead);
+
+router.get('/settings', isLoggedIn, studentController.getSettingsPage);
+router.post('/settings', isLoggedIn, studentController.updateSettings);
+router.post('/settings/profile-picture', isLoggedIn, uploadDeliverable.single('profilePicture'), studentController.uploadProfilePicture);
 
 module.exports = router;

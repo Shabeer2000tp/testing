@@ -1,5 +1,6 @@
 // 1. All imports are consolidated here at the top
 const Team = require('../models/Team');
+const Guide = require('../models/Guide');
 const Sprint = require('../models/Sprint');
 const Task = require('../models/Task');
 const BacklogItem = require('../models/BacklogItem');
@@ -8,6 +9,9 @@ const DailyLog = require('../models/DailyLog');
 const Deliverable = require('../models/Deliverable');
 const Setting = require('../models/Setting'); 
 const { getTaskStatusInfo } = require('../helpers/taskHelper');
+const moment = require('moment');
+const Login = require('../models/Login');
+const bcrypt = require('bcryptjs');
 
 // --- DASHBOARD & TEAM VIEWS ---
 exports.getDashboard = async (req, res) => {
@@ -21,8 +25,6 @@ exports.getDashboard = async (req, res) => {
         endOfToday.setHours(23, 59, 59, 999);
 
         const sprintSetting = await Setting.findOne({ key: 'sprintCreation' });
-        const allSprints = await Sprint.find({});
-        const overallTotalPoints = allSprints.reduce((sum, sprint) => sum + (sprint.capacity || 0), 0);
 
         let anySprintIsActive = false;
 
@@ -61,7 +63,14 @@ exports.getDashboard = async (req, res) => {
 
             const allCompletedTasks = await Task.find({ team: team._id, status: 'Done' });
             team.overallCompletedPoints = allCompletedTasks.reduce((sum, task) => sum + (task.storyPoints || 0), 0);
-            team.overallTotalPoints = overallTotalPoints;
+            
+            let projectSprints = [];
+            if (sprintSetting && sprintSetting.value === 'team') {
+                projectSprints = await Sprint.find({ team: team._id });
+            } else {
+                projectSprints = await Sprint.find({ team: { $exists: false } });
+            }
+            team.overallTotalPoints = projectSprints.reduce((sum, sprint) => sum + (sprint.capacity || 0), 0);
 
             const proposal = await Proposal.findOne({ team: team._id, status: 'Approved' }).populate('domain');
             team.projectTitle = proposal ? proposal.title : 'Untitled Project';
@@ -266,7 +275,14 @@ exports.getTeamBacklog = async (req, res) => {
             req.flash('error_msg', 'Team not found or you are not assigned to it.');
             return res.redirect('/guide/dashboard');
         }
-        const backlogItems = await BacklogItem.find({ team: team._id });
+
+        const filterPriority = req.query.priority;
+        const query = { team: team._id };
+        if (filterPriority) {
+            query.priority = filterPriority;
+        }
+
+        const backlogItems = await BacklogItem.find(query);
         const sprintSetting = await Setting.findOne({ key: 'sprintCreation' });
 
         // Sync Backlog Item status with Task status
@@ -282,6 +298,8 @@ exports.getTeamBacklog = async (req, res) => {
                 }
             }
         }
+
+        const totalBacklogHours = backlogItems.reduce((sum, item) => sum + (item.storyPoints || 0), 0);
 
         const startOfToday = new Date();
         startOfToday.setHours(0, 0, 0, 0);
@@ -311,7 +329,9 @@ exports.getTeamBacklog = async (req, res) => {
             backlogItems,
             user: req.session.user,
             sprintSetting: sprintSetting || { value: 'global' },
-            activeSprint
+            activeSprint,
+            totalBacklogHours,
+            filterPriority // Pass the filter value to the view
         });
     } catch (error) {
         console.error(error);
@@ -322,7 +342,7 @@ exports.getTeamBacklog = async (req, res) => {
 
 exports.postCreateBacklogItem = async (req, res) => {
     try {
-        const { description, priority } = req.body;
+        const { description, priority, storyPoints } = req.body;
         const teamId = req.params.id;
 
         if (!description || !priority) {
@@ -330,7 +350,7 @@ exports.postCreateBacklogItem = async (req, res) => {
             return res.redirect(`/guide/teams/${teamId}/backlog`);
         }
 
-        const newItem = new BacklogItem({ description, priority, team: teamId, status: 'New' });
+        const newItem = new BacklogItem({ description, priority, storyPoints, team: teamId, status: 'New' });
         await newItem.save();
 
         req.flash('success_msg', 'Backlog item added successfully.');
@@ -351,6 +371,7 @@ exports.postCreateBacklogItemAndSprintTask = async (req, res) => {
         const newItem = new BacklogItem({ 
             description, 
             priority, 
+            storyPoints,
             team: teamId, 
             status: 'In Sprint' 
         });
@@ -386,8 +407,8 @@ exports.postCreateBacklogItemAndSprintTask = async (req, res) => {
 
 exports.postEditBacklogItem = async (req, res) => {
     try {
-        const { description, priority } = req.body;
-        await BacklogItem.findByIdAndUpdate(req.params.itemId, { description, priority });
+        const { description, priority, storyPoints } = req.body;
+        await BacklogItem.findByIdAndUpdate(req.params.itemId, { description, priority, storyPoints });
         req.flash('success_msg', 'Backlog item updated.');
         res.redirect(`/guide/teams/${req.params.id}/backlog`);
     } catch (error) {
@@ -791,6 +812,129 @@ exports.postCreateSprint = async (req, res) => {
     }
 };
 
+exports.getPastSprints = async (req, res) => {
+    try {
+        const team = await Team.findById(req.params.id);
+        if (!team) {
+            req.flash('error_msg', 'Team not found.');
+            return res.redirect('/guide/dashboard');
+        }
+
+        const pastSprints = await Sprint.find({ team: team._id, status: 'Completed' }).sort({ endDate: -1 });
+
+        await Promise.all(pastSprints.map(async (sprint) => {
+            const tasks = await Task.find({ 
+                team: team._id,
+                $or: [{ sprint: sprint._id }, { originalSprint: sprint._id }]
+            }).populate('assignedTo', 'name');
+            sprint.tasks = tasks;
+            
+            if (tasks.length > 0) {
+                const totalStoryPoints = tasks.reduce((sum, task) => sum + (task.storyPoints || 0), 0);
+                let lastCompletionDate = new Date(sprint.endDate);
+                tasks.forEach(t => {
+                    if (t.status === 'Done' && new Date(t.updatedAt) > lastCompletionDate) {
+                        lastCompletionDate = new Date(t.updatedAt);
+                    }
+                });
+                let remainingPoints = totalStoryPoints;
+                const labels = [], actualData = [];
+                for (let d = new Date(sprint.startDate); d <= lastCompletionDate; d.setDate(d.getDate() + 1)) {
+                    labels.push(d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+                    const pointsCompleted = tasks.filter(t => t.status === 'Done' && new Date(t.updatedAt).toDateString() === d.toDateString()).reduce((sum, task) => sum + (task.storyPoints || 0), 0);
+                    remainingPoints -= pointsCompleted;
+                    actualData.push(remainingPoints);
+                }
+                sprint.burndownChartData = {
+                    labels: JSON.stringify(labels),
+                    actualData: JSON.stringify(actualData)
+                };
+            }
+        }));
+
+        const sprintSetting = await Setting.findOne({ key: 'sprintCreation' });
+
+        res.render('guide/past-sprints', { 
+            title: `Past Sprints: ${team.name}`, 
+            user: req.session.user,
+            team,
+            pastSprints,
+            sprintSetting: sprintSetting || { value: 'global' }
+        });
+    } catch (error) {
+        console.error(error);
+        req.flash('error_msg', 'Could not load past sprints.');
+        res.redirect(`/guide/teams/${req.params.id}`);
+    }
+};
+
+exports.getSettingsPage = async (req, res) => {
+    try {
+        const sprintSetting = await Setting.findOne({ key: 'sprintCreation' });
+        res.render('guide/settings', {
+            title: 'Settings',
+            user: req.session.user,
+            sprintSetting: sprintSetting || { value: 'global' }
+        });
+    } catch (error) {
+        console.error("Error loading settings page:", error);
+        req.flash('error_msg', 'Could not load settings.');
+        res.redirect('/guide/dashboard');
+    }
+};
+
+exports.updateSettings = async (req, res) => {
+    try {
+        const { currentPassword, newPassword, confirmPassword } = req.body;
+        
+        if (newPassword !== confirmPassword) {
+            req.flash('error_msg', 'New passwords do not match.');
+            return res.redirect('/guide/settings');
+        }
+
+        const userLogin = await Login.findById(req.session.user.loginId);
+        
+        const isMatch = await bcrypt.compare(currentPassword, userLogin.password);
+        if (!isMatch) {
+            req.flash('error_msg', 'Incorrect current password.');
+            return res.redirect('/guide/settings');
+        }
+
+        const hashedPassword = await bcrypt.hash(newPassword, 12);
+        userLogin.password = hashedPassword;
+        await userLogin.save();
+
+        req.flash('success_msg', 'Password updated successfully.');
+        res.redirect('/guide/settings');
+    } catch (error) {
+        console.error("Error updating settings:", error);
+        req.flash('error_msg', 'An error occurred while updating settings.');
+        res.redirect('/guide/settings');
+    }
+};
+
+exports.uploadProfilePicture = async (req, res) => {
+    try {
+        if (!req.file) {
+            req.flash('error_msg', 'No file selected.');
+            return res.redirect('/guide/settings');
+        }
+        
+        await Guide.findByIdAndUpdate(req.session.user.profileId, { profilePicture: req.file.path });
+        
+        if (req.session.user) {
+            req.session.user.profilePicture = req.file.path;
+        }
+
+        req.flash('success_msg', 'Profile picture updated successfully.');
+        res.redirect('/guide/settings');
+    } catch (error) {
+        console.error("Error uploading profile picture:", error);
+        req.flash('error_msg', 'Failed to upload profile picture.');
+        res.redirect('/guide/settings');
+    }
+};
+
 exports.postCreateTask = async (req, res) => {
     try {
         const { description, storyPoints, assignedTo, startDate, endDate, sprintId, assignedToAll, backlogItemId } = req.body;
@@ -903,5 +1047,54 @@ exports.postDeleteSprint = async (req, res) => {
         console.error("Error deleting sprint:", error);
         req.flash('error_msg', 'Failed to delete sprint.');
         res.redirect('back');
+    }
+};
+
+exports.getEvaluationReport = async (req, res) => {
+    try {
+        const team = await Team.findOne({ _id: req.params.id, guide: req.session.user.profileId }).populate('guide students');
+        if (!team) {
+            req.flash('error_msg', 'Team not found or you are not authorized.');
+            return res.redirect('/guide/dashboard');
+        }
+        const proposal = await Proposal.findOne({ team: team._id }).populate('domain');
+        const tasks = await Task.find({ team: team._id }).populate('assignedTo').sort({ createdAt: 1 });
+        const completedTasks = tasks.filter(t => t.status === 'Done');
+        const totalPointsCompleted = completedTasks.reduce((sum, task) => sum + (task.storyPoints || 0), 0);
+        
+        // Calculate Task Status Distribution
+        const taskStatusCounts = { 'To-Do': 0, 'In Progress': 0, 'Done': 0 };
+        tasks.forEach(task => {
+            if (taskStatusCounts[task.status] !== undefined) {
+                taskStatusCounts[task.status]++;
+            }
+        });
+
+        // Calculate Story Points per Student
+        const studentPerformance = {};
+        team.students.forEach(student => {
+            studentPerformance[student.name] = 0;
+        });
+
+        tasks.forEach(task => {
+            if (task.status === 'Done' && task.assignedTo && studentPerformance[task.assignedTo.name] !== undefined) {
+                studentPerformance[task.assignedTo.name] += (task.storyPoints || 0);
+            }
+        });
+
+        const sprintSetting = await Setting.findOne({ key: 'sprintCreation' });
+
+        res.render('guide/report', { 
+            title: `Report: ${team.name}`, 
+            user: req.session.user,
+            team, proposal, tasks, completedTasks, totalPointsCompleted, moment,
+            taskStatusCounts,
+            studentPerformance,
+            sprintSetting: sprintSetting || { value: 'global' }
+        });
+    } catch (error) {
+        console.error(error);
+        req.flash('error_msg', 'Could not generate report.');
+        res.redirect(`/guide/teams/${req.params.id}`);
     }
 };
