@@ -149,7 +149,10 @@ if (process.env.NODE_ENV === 'production') {
 // Health & Root Routes
 // ---------------------------------------------------
 app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'ok', message: '🔥 Sprint Sync server is healthy!' });
+  res.status(200).json({
+    status: 'ok',
+    timestamp: new Date().toISOString()
+  });
 });
 
 app.get('/', (req, res) => {
