@@ -1,7 +1,7 @@
 <div class="card auth-card mx-auto <%= pageType === 'single-column' ? 'single-column' : '' %>">
     <div class="row g-0">
 
-        <!-- Left Column: Branding -->
+        <!-- Left Column -->
         <div class="col-lg-5 d-none d-lg-flex auth-branding">
             <div>
                 <img src="/Sslogo White-02.svg" alt="Sprint Sync Logo" class="auth-branding-logo">
@@ -19,36 +19,36 @@
 
                 <%- include('./partials/_messages.ejs') %>
 
-                <div class="text-center text-lg-start mb-4">
+                <div class="mb-4">
                     <h4 class="mb-1">Sign In</h4>
                     <p class="text-muted mb-3">
                         Please enter your credentials to continue.
                     </p>
 
-                    <!-- Beta Testing Notice -->
+                    <!-- Beta Testing -->
                     <div class="alert alert-warning py-2 px-3 small mb-0">
                         <div class="fw-semibold mb-2">
-                            🚧 Sprint Sync is currently in beta testing.
+                            🚧 <strong>Beta Testing</strong> — Use any of the accounts below.
                         </div>
 
-                        <div class="mb-1">
+                        <div class="d-flex align-items-center flex-wrap mb-1">
                             <span class="badge bg-danger me-2">Admin</span>
-                            <code>admin@test.com</code>
-                            <span class="text-muted mx-2">|</span>
+                            <code class="me-2">admin@test.com</code>
+                            <span class="text-muted me-2">•</span>
                             <code>Password123</code>
                         </div>
 
-                        <div class="mb-1">
+                        <div class="d-flex align-items-center flex-wrap mb-1">
                             <span class="badge bg-success me-2">Guide</span>
-                            <code>profrohiniraju@guide.com</code>
-                            <span class="text-muted mx-2">|</span>
+                            <code class="me-2">profrohiniraju@guide.com</code>
+                            <span class="text-muted me-2">•</span>
                             <code>Password123</code>
                         </div>
 
-                        <div>
+                        <div class="d-flex align-items-center flex-wrap">
                             <span class="badge bg-primary me-2">Student</span>
-                            <code>jishnub@student.com</code>
-                            <span class="text-muted mx-2">|</span>
+                            <code class="me-2">jishnub@student.com</code>
+                            <span class="text-muted me-2">•</span>
                             <code>Password123</code>
                         </div>
                     </div>
@@ -58,7 +58,7 @@
 
                     <div class="mb-3">
                         <label for="email" class="form-label">
-                            Email
+                            Email Address
                         </label>
 
                         <input
@@ -76,21 +76,25 @@
                             Password
                         </label>
 
-                        <div class="input-group">
+                        <div class="position-relative">
+
                             <input
                                 type="password"
-                                class="form-control"
+                                class="form-control pe-5"
                                 id="password"
                                 name="password"
                                 placeholder="Enter your password"
                                 required>
 
                             <button
-                                class="btn btn-outline-secondary"
                                 type="button"
-                                id="togglePassword">
-                                <i class="bi bi-eye"></i>
+                                id="togglePassword"
+                                class="btn border-0 position-absolute top-50 end-0 translate-middle-y me-2 p-0">
+
+                                <i class="bi bi-eye fs-5"></i>
+
                             </button>
+
                         </div>
                     </div>
 
@@ -111,23 +115,30 @@
 
             </div>
         </div>
+
     </div>
 </div>
 
 <script>
 document.addEventListener("DOMContentLoaded", () => {
+
     const password = document.getElementById("password");
     const toggle = document.getElementById("togglePassword");
     const icon = toggle.querySelector("i");
 
     toggle.addEventListener("click", () => {
+
         if (password.type === "password") {
             password.type = "text";
-            icon.classList.replace("bi-eye", "bi-eye-slash");
+            icon.classList.remove("bi-eye");
+            icon.classList.add("bi-eye-slash");
         } else {
             password.type = "password";
-            icon.classList.replace("bi-eye-slash", "bi-eye");
+            icon.classList.remove("bi-eye-slash");
+            icon.classList.add("bi-eye");
         }
+
     });
+
 });
 </script>
